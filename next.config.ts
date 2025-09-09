@@ -3,10 +3,10 @@
 const nextConfig = {
   images: {
     domains: ['i.pinimg.com'],
-     eslint: {
-    ignoreDuringBuilds: true,
   },
-  },
+  eslint: {
+ ignoreDuringBuilds: true,
+},
 };
 
 module.exports = nextConfig;

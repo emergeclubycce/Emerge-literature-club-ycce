@@ -58,10 +58,18 @@ const timelineData = [
       "Lorem ipsum dolor sit amet consectetur adipisicing elit. Fuga officiis tempora ipsum adipisci tenetur sunt quae exercitationem sed pariatur porro!",
   }
 ];
+interface TimelineItemType {
+  date: string;
+  title: string;
+  description: string;
+}
+interface prop{
+  item:TimelineItemType,
+  index:number
+}
 
 
-
-function TimelineItem({ item, index }) {
+function TimelineItem({ item, index }:prop) {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-100px" });
 
