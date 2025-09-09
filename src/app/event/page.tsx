@@ -4,6 +4,7 @@ import Nav from "../components/reuseable/reusable-home/nav";
 import Image from "next/image";
 
 const inter = Inter({
+   subsets: ["latin"],
   variable: "--font-inter",
 });
 
