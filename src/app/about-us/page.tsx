@@ -5,6 +5,7 @@ import Nav from '../components/reuseable/reusable-home/nav'
 
 
 const inter = Inter({
+   subsets: ["latin"], 
   variable:"--font-inter"
 })
 

@@ -6,6 +6,7 @@ import Image from 'next/image'
 
 
 const inter = Inter({
+   subsets: ["latin"], 
   variable:"--font-inter"
 })
 

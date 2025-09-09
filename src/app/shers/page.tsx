@@ -6,6 +6,7 @@ import SherCard from '../components/reuseable/reusable-home/sher-card'
 
 
 const inter = Inter({
+   subsets: ["latin"], 
   variable:"--font-inter"
 })
 

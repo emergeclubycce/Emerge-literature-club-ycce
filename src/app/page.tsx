@@ -16,6 +16,7 @@ import { AccordionDemo } from './components/reuseable/reusable-home/accordion'
 import ClickSpark from './components/reuseable/reusable-home/reusable-clcikup-animation'
 
 const inter = Inter({
+ subsets: ["latin"],
   variable: '--font-inter', // should match the font name
 });
 
