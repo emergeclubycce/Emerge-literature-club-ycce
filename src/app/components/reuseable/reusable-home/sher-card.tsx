@@ -6,6 +6,7 @@ import { Inter } from "next/font/google";
 import { Bookmark, HeartIcon, Send } from "lucide-react";
 
 const inter = Inter({
+   subsets: ["latin"],
   variable: "--font-inter",
 });
 
