@@ -29,7 +29,7 @@ function SherCard() {
   }, []);
 
   return (
-    <div className="h-[37rem] border-2 border-gray-200 w-96 md:w-[27rem]">
+    <div className="h-[37rem] border-2 px-2 rounded  border-gray-200 w-96 md:w-[27rem]">
       {/* Header */}
       <div className="h-15 w-full p-2 flex items-center justify-between px-3">
         <div className="flex items-center gap-3">
@@ -48,7 +48,7 @@ function SherCard() {
       </div>
 
       {/* Carousel Section */}
-      <div className="h-[23rem] w-full border-t-[1px] border-gray-300 bg-amber-200 border-b-[1px] flex items-center justify-center px-4 text-center">
+      <div className="h-[23rem] w-full rounded-2xl border-t-[1px] border-gray-300 bg-amber-200 border-b-[1px] flex items-center justify-center px-4 text-center">
         <p className={`${inter.className}  text-md font-bold text-zinc-800 px-2 transition-all duration-500 ease-in-out`}>
           {shers[currentIndex]}
         </p>

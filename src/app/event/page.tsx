@@ -3,12 +3,14 @@ import { Inter } from "next/font/google";
 import Nav from "../components/reuseable/reusable-home/nav";
 import Image from "next/image";
 
+
 const inter = Inter({
    subsets: ["latin"],
   variable: "--font-inter",
 });
 
 function Page() {
+;
   return (
     <>
       <Nav />
@@ -151,20 +153,15 @@ function Page() {
         
 
         {/* Footer */}
-        <footer className="w-full border-t border-gray-300 flex flex-col items-center justify-center py-6">
-          <div className="h-20 w-20 rounded-full overflow-hidden border border-gray-400">
-            <Image
-              src="/image/image.png"
-              alt="logo"
-              width={100}
-              height={100}
-              className="object-cover"
-            />
-          </div>
-          <h1 className="mt-6 text-center text-sm sm:text-base px-4 text-gray-600">
-            Designed & Developed with ❤️ by Muchkundraje Thote
-          </h1>
-        </footer>
+      <footer className='h-50 w-full border-t-[1px] border-gray-300  flex flex-col items-center justify-center'>
+                <div className='h-15 w-15 rounded-full overflow-hidden border-[1px] border-gray-400  '>
+                         <Image src='/image/image.png' alt='logo' width={100} height={100} />
+                </div>
+               
+                 <h1 className='mt-10 text-center px-2'>
+                        Designed & Developed with ❤️ by Muchkundraje thote 
+                 </h1>
+      </footer>
       </main>
     </>
   );

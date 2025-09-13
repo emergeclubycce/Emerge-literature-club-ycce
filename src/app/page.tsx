@@ -14,6 +14,7 @@ import Timeline from './components/reuseable/reusable-home/timeline'
 import SherCard from './components/reuseable/reusable-home/sher-card'
 import { AccordionDemo } from './components/reuseable/reusable-home/accordion'
 import ClickSpark from './components/reuseable/reusable-home/reusable-clcikup-animation'
+import {useLenis} from '@/utils/lenis'
 
 const inter = Inter({
  subsets: ["latin"],
@@ -24,7 +25,7 @@ const inter = Inter({
 
 function Page() {
 
- 
+ useLenis()
 
   return (
 
@@ -34,6 +35,7 @@ function Page() {
    
    {/* page1 */}
    
+<div className='min-h-screen w-full'>
    <ClickSpark
   sparkColor='#00A6F4'
   sparkSize={10}
@@ -41,6 +43,7 @@ function Page() {
   sparkCount={8}
   duration={400}
 >
+  
   <main className='no-select min-h-screen  w-full overflow-hidden scrollbar-hide pb-10 '>
 
 
@@ -68,7 +71,7 @@ function Page() {
       
         <div>
          <h2 className={` ${inter.className} text-4xl text-gray-500 text-center`}>Our <span className='text-sky-500'>Events</span> & Activities</h2>
-         <p className='font-light text-center'>A glimpse of our poetry, passion, and creative expression Emerge Poetry Club, YCCE.</p>
+         <p className='font-light text-center'>A glimpse of our Literature, passion, and creative expression Emerge Literature Club, YCCE.</p>
         </div>
        <LayoutGridDemo/> 
            <div className="group h-full w-full  flex items-center justify-center gap-1 cursor-pointer">
@@ -81,7 +84,7 @@ function Page() {
     <div className='min-h-screen w-full '>
          <div className={` ${inter.className} font-bold mb-40`}>
          <h2 className={` ${inter.className} text-4xl text-gray-500 text-center font-bold`}>Our <span className='text-sky-500 '>Timeline</span> </h2>
-         <p className='font-medium text-gray-500  text-center'>A journey of poetic milestones and creative expression at Emerge Poetry Club, YCCE.</p>
+         <p className='font-medium text-gray-500  text-center'>A journey of poetic milestones and creative expression at Emerge Literature Club, YCCE.</p>
         </div>
          <Timeline/>
     </div>
@@ -95,13 +98,13 @@ function Page() {
              <div className='h-15 w-15 rounded-full overflow-hidden border-[1px] border-gray-400  '>
                       <Image src='/image/image.png' alt='logo' width={100} height={100} />
                      </div>
-                <h2 className={`emerge text-4xl text-black text-center`}>About</h2>
-                <p className={`${inter.className} font-medium text-2xl mt-3 text-center`}> Emerge <span>Poetry</span> Club | YCCE.</p>
+                <h2 className={`emerge text-2xl md:text-4xl text-black text-center`}>About</h2>
+                <p className={`${inter.className} font-medium text-xl md:text-2xl mt-3 text-center mb-2`}> Emerge <span>Literature</span> Club | YCCE.</p>
 
-                <p className={` ${inter.className} text-center w-80 md:w-[40rem] mt-3`}> 
-                  Emerge Poetry Club is the heart of poetic expression at YCCE a space where words breathe, emotions flow, and creativity thrives. We celebrate the art of storytelling through verses, spoken word, and lyrical narratives. From soulful open mics to powerful slam poetry events, we give voice to the thoughts that often go unspoken.
+                <p className={` ${inter.className} text-center text-sm md:text-[16px] px-3 md:px-0 md:text-md w-80 md:w-[40rem] mt-3`}> 
+                  Emerge Literature Club is the heart of poetic expression at YCCE a space where words breathe, emotions flow, and creativity thrives. We celebrate the art of storytelling through verses, spoken word, and lyrical narratives. From soulful open mics to powerful slam Literature events, we give voice to the thoughts that often go unspoken.
                 </p>
-                 <p className={` ${inter.className} text-center w-80 md:w-[40rem] mt-10`}> 
+                 <p className={` ${inter.className} text-center text-sm md:text-[16px]  w-80 md:w-[40rem] mt-10`}> 
                    Whether you re a seasoned poet or just beginning to rhyme your thoughts, Emerge is your stage to grow, express, and inspire. Join us, and let your words emerge.
                 </p>
 
@@ -116,7 +119,7 @@ function Page() {
    <div className='h-screen w-full relative flex items-center gap-3 justify-center mt-20'>
               
            <div className='h-full w-full flex  flex-col items-center justify-center z-20'>
-             <h2 className={` ${inter.className} text-4xl text-gray-500 text-center font-bold mb-10`}>Checkout Our <span className='text-sky-500 '>Shers</span> Section </h2>
+             <h2 className={` ${inter.className} text-3xl md:text-4xl text-gray-500 text-center font-bold mb-10`}>Checkout Our <span className='text-sky-500 '>Shers</span> Section </h2>
              <SherCard/>
 
                    <div className="group flex items-center justify-center mt-10 gap-1 cursor-pointer">
@@ -149,7 +152,11 @@ function Page() {
 
 </main>
 
+  
 </ClickSpark>
+
+</div>
+
 
 
 
