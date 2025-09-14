@@ -37,7 +37,7 @@ function SherCard() {
             <Image src="/image/image.png" alt="logo" width={100} height={100} />
           </div>
           <p className={`${inter.className} font-medium text-sm`}>
-            Emerge <span>Poetry</span> Club | YCCE.
+            Emerge <span>Literature</span> Club | YCCE.
           </p>
         </div>
         <div className="h-full flex flex-col items-center justify-center gap-[3px]">

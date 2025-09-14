@@ -1,9 +1,11 @@
-
+/* eslint-disable react-hooks/rules-of-hooks */
+"use client"
 import React from 'react'
 import { Inter } from 'next/font/google'
 import Nav from '../components/reuseable/reusable-home/nav'
 import Profilecard from '../components/team/profilecard'
 import Image from 'next/image'
+import { useLenis } from '@/utils/lenis'
 
 const inter = Inter({
    subsets: ["latin"],
@@ -11,7 +13,9 @@ const inter = Inter({
 })
 
 function page() {
+  useLenis();
   return (
+    
     <>
     <Nav/>
    <main className={`${inter.className} min-h-screen w-full flex flex-col  pt-30  items-center justify-center `}>

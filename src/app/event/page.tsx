@@ -1,7 +1,9 @@
+"use client"
 import React from "react";
 import { Inter } from "next/font/google";
 import Nav from "../components/reuseable/reusable-home/nav";
 import Image from "next/image";
+import { useLenis } from "@/utils/lenis";
 
 
 const inter = Inter({
@@ -10,7 +12,7 @@ const inter = Inter({
 });
 
 function Page() {
-;
+  useLenis();
   return (
     <>
       <Nav />

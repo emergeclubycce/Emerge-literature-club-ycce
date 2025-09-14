@@ -3,10 +3,10 @@
 import React from 'react'
 import Image from 'next/image'
 import gsap from 'gsap'
-import { useEffect } from 'react'
+import { useEffect,useRef } from 'react'
 import Maquee from './components/reuseable/reusable-home/maquee'
 import Nav from './components/reuseable/reusable-home/nav'
-import Laoder from './components/reuseable/reusable-home/laoder'
+
 import { LayoutGridDemo } from './components/reuseable/reusable-home/layout-grid'
 import { Inter } from 'next/font/google';
 import { MoveRight } from 'lucide-react'
@@ -15,6 +15,10 @@ import SherCard from './components/reuseable/reusable-home/sher-card'
 import { AccordionDemo } from './components/reuseable/reusable-home/accordion'
 import ClickSpark from './components/reuseable/reusable-home/reusable-clcikup-animation'
 import {useLenis} from '@/utils/lenis'
+import {ScrollTrigger} from 'gsap/dist/ScrollTrigger'
+
+gsap.registerPlugin(ScrollTrigger);
+
 
 const inter = Inter({
  subsets: ["latin"],
@@ -26,11 +30,38 @@ const inter = Inter({
 function Page() {
 
  useLenis()
+ const cardRef = useRef<HTMLImageElement | null>(null);
+    
+  useEffect(()=>{
+    gsap.to(".parallex",{
+        y:-80,
+        duration:0.5,
+        scrollTrigger:{
+            trigger: ".landing-screen",     // element that triggers the animation
+              start:"top top" ,      // when top of box hits 30% of viewport
+            scrub: true,         // smooth scrubbing, takes 1 sec to "catch up"
+          
+        }
+    })
+
+       gsap.to(".parallex2",{
+        y:80,
+        duration:0.5,
+        scrollTrigger:{
+            trigger: ".landing-screen",     // element that triggers the animation
+              start:"top top" ,      // when top of box hits 30% of viewport
+            scrub: true,         // smooth scrubbing, takes 1 sec to "catch up"
+          
+        }
+    })
+    
+  })
+
 
   return (
 
     <>
-    <Laoder/>
+    {/* <Laoder/> */}
     <Nav/>
    
    {/* page1 */}
@@ -48,18 +79,18 @@ function Page() {
 
 
 
-   <div className=' relative h-screen  w-full flex flex-col items-center justify-center text-black font-bold  overflow-hidden'>
-        <Image  draggable={false}  src='/image/cardborad.png' alt='logo' width={700} height={200} className='image absolute z-30 md:-bottom-20 md:-left-50 bottom-10 -left-50   '/>
+   <div className='landing-screen relative h-screen  w-full flex flex-col items-center justify-center text-black font-bold  overflow-hidden'>
+        <Image ref={cardRef}  draggable={false}  src='/image/cardborad.png' alt='logo' width={700} height={200} className=' parallex image absolute z-30 md:-bottom-20 md:-left-50 bottom-10 -left-50   '/>
         <Image  draggable={false} src='/image/cardborad.png' alt='logo' width={700} height={200} className='image absolute  md:-top-30 md:-left-60  -top-10 -left-45 z-30 md:z-10  '/>
         <Image  draggable={false} src='/image/cardborad.png' alt='logo' width={700} height={200} className='image absolute rotate-180 -bottom-10 -right-40  z-30 md:z-10 md:-bottom-20 md:right-10'/>
-        
-     
+         <Image  draggable={false} src='/image/cardborad.png' alt='logo' width={700} height={200} className='parallex2 image absolute rotate-0 top-0 left-260  z-40 md:z-30 md:-bottom-20 md:right-10'/>
+       
      <div className='screen-wrap  h-[80%]  flex-col w-[96%] md:w-[80%] z-20 flex items-center justify-center shadow-xl '>
-          <Image draggable={false} src='/image/logo-2.png' alt='logo' width={700} height={200} className='image'/>
+          <Image ref={cardRef} draggable={false} src='/image/Litraure-logo.png' alt='logo' width={700} height={200} className='parallex'/>
            <button className={` ${inter.className} px-3 py-2  text-white bg-sky-500 font-medium  mt-2 rounded-2xl md:hidden flex gap-2  `}>Get Started  <MoveRight className='group-hover:translate-x-1 transition-all'/></button>
      </div>  
        
-      <Maquee/>
+      <Maquee />
     </div>
 
 
