@@ -29,7 +29,7 @@ function Nav() {
 
   return (
     <div
-      className={`${inter.className} fixed top-0 flex items-center justify-between px-10 py-2 font-medium z-50 h-15 w-full transition-all duration-300 ${
+      className={`${inter.className} fixed top-0 flex items-center justify-between px-10 py-2 font-medium z-40 h-15 w-full transition-all duration-300 ${
         scrolled ? "backdrop-blur-2xl bg-white/60 shadow-md" : "bg-transparent"
       }`}
     >

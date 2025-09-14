@@ -6,7 +6,7 @@ import gsap from 'gsap'
 import { useEffect,useRef } from 'react'
 import Maquee from './components/reuseable/reusable-home/maquee'
 import Nav from './components/reuseable/reusable-home/nav'
-
+import Loader from './components/reuseable/reusable-home/laoder'
 import { LayoutGridDemo } from './components/reuseable/reusable-home/layout-grid'
 import { Inter } from 'next/font/google';
 import { MoveRight } from 'lucide-react'
@@ -61,7 +61,7 @@ function Page() {
   return (
 
     <>
-    {/* <Laoder/> */}
+   <Loader/>
     <Nav/>
    
    {/* page1 */}
