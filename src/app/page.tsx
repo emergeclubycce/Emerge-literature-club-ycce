@@ -16,6 +16,7 @@ import { AccordionDemo } from './components/reuseable/reusable-home/accordion'
 import ClickSpark from './components/reuseable/reusable-home/reusable-clcikup-animation'
 import {useLenis} from '@/utils/lenis'
 import {ScrollTrigger} from 'gsap/dist/ScrollTrigger'
+import Link from 'next/link'
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -154,7 +155,9 @@ function Page() {
              <SherCard/>
 
                    <div className="group flex items-center justify-center mt-10 gap-1 cursor-pointer">
+        <Link  href={"/shers"}>
         <h1 className=" relative font-medium before:content-[''] before:absolute before:bottom-0 before:left-0 before:w-0 before:h-[2.5px] before:bg-sky-500 before:rounded-2xl hover:before:w-full before:transition-all  text-gray-600 ">See Shers Section</h1>
+        </Link>
        <MoveRight className='group-hover:translate-x-1 transition-all'/>
         </div>   
            </div>   
@@ -175,8 +178,8 @@ function Page() {
                       <Image src='/image/image.png' alt='logo' width={100} height={100} />
              </div>
             
-              <h1 className='mt-10 text-center px-2'>
-                     Designed & Developed with ❤️ by Muchkundraje thote 
+              <h1 className='mt-7 md:text-[16px] text-sm text-center px-2'>
+                     Designed & Developed with ❤️ by  <a href="https://github.com/MUCHKUNDRAJE"><span className='hover:underline'>  Muchkundraje thote  </span> </a>
               </h1>
    </footer>
 

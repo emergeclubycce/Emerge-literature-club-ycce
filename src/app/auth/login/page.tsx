@@ -2,6 +2,7 @@
 import React from 'react'
 import { Inter } from 'next/font/google'
 import Image from 'next/image'
+import GoogleLogin from '@/app/components/auth/GoogleLogin'
 
 
 
@@ -24,7 +25,7 @@ function page() {
           <Image src='/image/image.png' alt='logo' width={100} height={100} />
          </div>
          <h2 className={` ${inter.className} text-xl text-gray-500 text-center font-bold  `}>Login</h2>
-            <button className=' text-white rounded p-2 px-5 bg-sky-500'>Google Login</button>
+          <GoogleLogin/>
        </div>
 
     </div>
