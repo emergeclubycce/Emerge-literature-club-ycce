@@ -33,11 +33,9 @@ function GoogleLogin() {
       }
     };
 
-   const handleGoogleLogin = async () => {
-  const redirectUrl =
-    import.meta.env.MODE === "development"
-      ? "http://localhost:3000/"
-      : "https://your-vercel-domain.vercel.app/";
+ const handleGoogleLogin = async () => {
+  // Dynamically get base URL (works for localhost + vercel)
+  const redirectUrl = `${window.location.origin}`;
 
   const { error } = await supabase.auth.signInWithOAuth({
     provider: "google",
