@@ -17,7 +17,7 @@ function ProfileCard({name,post,index}:profileProb) {
       <div className="relative h-[90%] w-full rounded-t-2xl overflow-hidden">
         {/* Profile Image */}
         <Image 
-          src={`/Team-Image/${index}.jpg `}
+          src={`./Team-Image/${index}.jpg `}
           alt="profile" 
           fill 
           className="object-cover"
