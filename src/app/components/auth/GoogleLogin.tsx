@@ -33,15 +33,20 @@ function GoogleLogin() {
       }
     };
 
-     const handleGoogleLogin = async () => {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: 'http://localhost:3000/' // optional redirect URL after login
-      }
-    })
-    if (error) console.error(error)
-  }
+   const handleGoogleLogin = async () => {
+  const redirectUrl =
+    import.meta.env.MODE === "development"
+      ? "http://localhost:3000/"
+      : "https://your-vercel-domain.vercel.app/";
+
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo: redirectUrl },
+  });
+
+  if (error) console.error("Google login error:", error);
+};
+
   return (
     <button
       onClick={handleGoogleLogin}
