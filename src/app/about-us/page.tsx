@@ -12,7 +12,7 @@ const inter = Inter({
 function page() {
   return (
     <>
-    <Nav/>
+   
    <main className={`${inter.className} h-screen w-full flex items-center justify-center `}>
     <h2 className={` ${inter.className} text-4xl text-gray-500 text-center font-bold mb-10`}>About Us</h2>
    </main>

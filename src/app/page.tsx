@@ -1,11 +1,11 @@
 "use client"
 
-import React from 'react'
+import React  from 'react'
 import Image from 'next/image'
 import gsap from 'gsap'
 import { useEffect,useRef } from 'react'
 import Maquee from './components/reuseable/reusable-home/maquee'
-import Nav from './components/reuseable/reusable-home/nav'
+
 import Loader from './components/reuseable/reusable-home/laoder'
 import { LayoutGridDemo } from './components/reuseable/reusable-home/layout-grid'
 import { Inter } from 'next/font/google';
@@ -18,6 +18,7 @@ import {useLenis} from '@/utils/lenis'
 import {ScrollTrigger} from 'gsap/dist/ScrollTrigger'
 import Link from 'next/link'
 
+
 gsap.registerPlugin(ScrollTrigger);
 
 
@@ -29,6 +30,7 @@ const inter = Inter({
 
 
 function Page() {
+ 
 
  useLenis()
  const cardRef = useRef<HTMLImageElement | null>(null);
@@ -59,11 +61,15 @@ function Page() {
   })
 
 
+
+
+
+
   return (
 
     <>
    <Loader/>
-    <Nav/>
+   
    
    {/* page1 */}
    
@@ -152,7 +158,7 @@ function Page() {
               
            <div className='h-full w-full flex  flex-col items-center justify-center z-20'>
              <h2 className={` ${inter.className} text-3xl md:text-4xl text-gray-500 text-center font-bold mb-10`}>Checkout Our <span className='text-sky-500 '>Shers</span> Section </h2>
-             <SherCard/>
+             <SherCard writter={"emerge"} image={"/storage/1.jpg"} caption={"The Grandstand 5.0 – Open Mic Final Round, held on 22nd September 2025 at the CCC Auditorium, featured 25 performers selected from 100 participants. Organized by the EMERGE Literature Club of YCCE, the event showcased a vibrant mix of shayari, stand-up, and other performances. Judge Dr. Arvinder Kaur provided motivating feedback, encouraging participants to refine their craft. The program successfully promoted creativity, confidence, and community, reflecting EMERGE’s mission to nurture literary and artistic talent at YCCE."} />
 
                    <div className="group flex items-center justify-center mt-10 gap-1 cursor-pointer">
         <Link  href={"/shers"}>
@@ -175,7 +181,7 @@ function Page() {
 
    <footer className='h-50 w-full border-t-[1px] border-gray-300  flex flex-col items-center justify-center'>
              <div className='h-15 w-15 rounded-full overflow-hidden border-[1px] border-gray-400  '>
-                      <Image src='/image/image.png' alt='logo' width={100} height={100} />
+                      <Image src='/image/logo.png' alt='logo' width={100} height={100} />
              </div>
             
               <h1 className='mt-7 md:text-[16px] text-sm text-center px-2'>

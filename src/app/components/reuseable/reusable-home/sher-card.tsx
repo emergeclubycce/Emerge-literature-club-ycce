@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import Image from "next/image";
 import { Inter } from "next/font/google";
 import { Bookmark, HeartIcon, Send } from "lucide-react";
@@ -10,33 +10,31 @@ const inter = Inter({
   variable: "--font-inter",
 });
 
-const shers = [
-  "तेरा ज़िक्र जब भी आया, हमने मुस्कुरा कर बात टाल दी, दिल तो रोया... पर चेहरा संभाल लिया।",
-  "दिल की बातें दिल में रहीं, जुबां से निकली तो रिश्ता चला गया।",
-  "वक़्त ने सिखा दिया हमें ख़ामोश रहना, वरना हर बात पर बवाल होता था।",
-];
 
-function SherCard() {
-  const [currentIndex, setCurrentIndex] = useState(0);
+
+interface  SherProp {
+  writter : string ,
+caption:string,
+image:string
+}
+
+
+
+
+function SherCard({writter , caption , image}:SherProp) {
+
 
   // Auto-slide logic
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentIndex((prevIndex) => (prevIndex + 1) % shers.length);
-    }, 4000); // Change slide every 4 seconds
-
-    return () => clearInterval(interval); // Cleanup on unmount
-  }, []);
-
+  
   return (
-    <div className="h-[37rem] border-2 px-2 rounded  border-gray-200 w-96 md:w-[27rem]">
+    <div className="h-auto border-2 px-2 rounded  border-gray-200 w-96 md:w-[27rem]">
       {/* Header */}
       <div className="h-15 w-full p-2 flex items-center justify-between px-3">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-full overflow-hidden border border-gray-400">
-            <Image src="/image/image.png" alt="logo" width={100} height={100} />
+            <Image src="/image/logo.png" alt="logo" width={100} height={100} />
           </div>
-          <p className={`${inter.className} font-medium text-sm`}>
+          <p className={`${inter.className} font-medium text-sm `}>
             Emerge <span>Literature</span> Club | YCCE.
           </p>
         </div>
@@ -48,14 +46,16 @@ function SherCard() {
       </div>
 
       {/* Carousel Section */}
-      <div className="h-[23rem] w-full rounded-2xl border-t-[1px] border-gray-300 bg-amber-200 border-b-[1px] flex items-center justify-center px-4 text-center">
-        <p className={`${inter.className}  text-md font-bold text-zinc-800 px-2 transition-all duration-500 ease-in-out`}>
+      <div className="h-auto w-full  border-gray-300  flex items-center justify-center px-4 text-center">
+        {/* <p className={`${inter.className}  text-md font-bold text-zinc-800 px-2 transition-all duration-500 ease-in-out`}>
           {shers[currentIndex]}
-        </p>
+        </p> */}
+
+        <img src={image} alt="" className="overflow-hidden rounded-2xl" />
       </div>
 
       {/* Footer */}
-      <div className="h-36 w-full">
+      <div className="h-auto w-full">
         <div className="w-full h-10 p-2 flex items-center justify-between">
           <div className="flex gap-3">
             <HeartIcon />
@@ -63,27 +63,30 @@ function SherCard() {
           </div>
 
           <div className="flex gap-1 -ml-4">
-            {shers.map((_, i) => (
+            {/* {shers.map((_, i) => (
               <div
                 key={i}
                 className={`h-1 w-1 rounded-2xl ${
                   i === currentIndex ? "bg-blue-600" : "bg-gray-200"
                 }`}
               ></div>
-            ))}
+            ))} */}
           </div>
 
           <Bookmark />
         </div>
-
-        <div className="text-sm p-2">
-          A sher is more than just poetry — it’s emotion wrapped in two lines.
+            <div className="Inter text-xs px-2 ml-2 w-fit rounded-2xl py-[3px] outline-dashed outline-[0.5px] outline-zinc-600 bg-slate-200">
+                    Written by {writter}
+            </div>
+        <div className="text-sm p-2 ">
+          {/* A sher is more than just poetry — it’s emotion wrapped in two lines.
           From silent heartbreaks to unspoken love, every sher speaks what words
           often can't.
           <br />
           <span className="italic text-gray-700">
             "कुछ अल्फ़ाज़ नहीं कहे जाते, बस शेर बन जाते हैं..."
-          </span>
+          </span> */}
+          {caption}
         </div>
       </div>
     </div>

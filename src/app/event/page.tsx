@@ -1,7 +1,6 @@
 "use client"
 import React from "react";
 import { Inter } from "next/font/google";
-import Nav from "../components/reuseable/reusable-home/nav";
 import Image from "next/image";
 import { useLenis } from "@/utils/lenis";
 
@@ -15,7 +14,7 @@ function Page() {
   useLenis();
   return (
     <>
-      <Nav />
+   
       <main
         className={`${inter.className} min-h-screen w-full flex-col items-center justify-center`}
       >
@@ -157,7 +156,7 @@ function Page() {
         {/* Footer */}
       <footer className='h-50 w-full border-t-[1px] border-gray-300  flex flex-col items-center justify-center'>
                 <div className='h-15 w-15 rounded-full overflow-hidden border-[1px] border-gray-400  '>
-                         <Image src='/image/image.png' alt='logo' width={100} height={100} />
+                         <Image src='/image/logo.png' alt='logo' width={100} height={100} />
                 </div>
                
                  <h1 className='mt-10 text-center px-2'>

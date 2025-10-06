@@ -1,5 +1,5 @@
 import { doc, setDoc } from "firebase/firestore";
-import { db } from "../../src/app/config/firebaseConfig"
+import { db } from "../config/firebaseConfig"
 
 export const saveUserToDB = async (user: any) => {
   try {

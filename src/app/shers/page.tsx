@@ -3,7 +3,7 @@
 
 import React from 'react'
 import { Inter } from 'next/font/google'
-import Nav from '../components/reuseable/reusable-home/nav'
+
 import SherCard from '../components/reuseable/reusable-home/sher-card'
 import { useLenis } from '@/utils/lenis'
 import Image from 'next/image'
@@ -22,18 +22,17 @@ function page() {
   return (
     <>
   
-    <Nav/>
+    
    <main className={`${inter.className} min-h-screen w-full flex flex-col items-center justify-center `}>
     <h2 className={` ${inter.className} text-4xl text-gray-500 text-center font-bold mt-20 mb-10`}>Shers</h2>
     <div className='min-h-100vh w-full p-2 mb-20  flex flex-col items-center justify-center'>
-                <SherCard/>
-                <SherCard/>
+            <SherCard writter={"emerge"} image={"/storage/1.jpg"} caption={"The Grandstand 5.0 – Open Mic Final Round, held on 22nd September 2025 at the CCC Auditorium, featured 25 performers selected from 100 participants. Organized by the EMERGE Literature Club of YCCE, the event showcased a vibrant mix of shayari, stand-up, and other performances. Judge Dr. Arvinder Kaur provided motivating feedback, encouraging participants to refine their craft. The program successfully promoted creativity, confidence, and community, reflecting EMERGE’s mission to nurture literary and artistic talent at YCCE."} />
          
          
     </div>
       <footer className='h-50 w-full  border-t-[1px] border-gray-300  flex flex-col items-center justify-center'>
                      <div className='h-15 w-15 rounded-full overflow-hidden border-[1px] border-gray-400  '>
-                              <Image src='/image/image.png' alt='logo' width={100} height={100} />
+                              <Image src='/image/logo.png' alt='logo' width={100} height={100} />
                      </div>
                     
                       <h1 className='mt-10 text-center px-2'>

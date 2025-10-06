@@ -1,6 +1,10 @@
+
 import type { Metadata } from "next";
 // import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import Nav from "./components/reuseable/reusable-home/nav";
+
+
 
 
 export const metadata: Metadata = {
@@ -23,6 +27,7 @@ export default function RootLayout({
         className={` antialiased`}
          suppressHydrationWarning={true}
       >
+     <Nav/>
         {children}
       </body>
     </html>
