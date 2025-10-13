@@ -3,7 +3,7 @@ import React from 'react'
 function Maquee() {
   return (
     <div className='  hidden md:block absolute bottom-12 right-30 z-30'>
-        <a href="#" className="link">
+        <div href="#" className="link">
 	<svg viewBox='0 0 200 200' width='200' height='200' xmlns='http://www.w3.org/2000/svg' className="link__svg" aria-labelledby="link1-title link1-desc">
 		<title id="link1-title">Come quick and click this for the </title>
 		<desc id="link1-desc">A rotating link with text placed around a circle with an arrow inside</desc>
@@ -18,7 +18,7 @@ function Maquee() {
 			</textPath>
 		</text>
 	</svg>
-</a>
+</div>
 
 
 

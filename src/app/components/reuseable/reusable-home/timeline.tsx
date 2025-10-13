@@ -16,46 +16,52 @@ const inter = Inter({
 
 const timelineData = [
   {
-    date: "2020",
-    title: "Kickoff",
+    date: "13 June 2020",
+    title: "Formation of Emerge Club",
     description:
-      "Lorem ipsum dolor sit amet consectetur adipisicing elit. Fuga officiis tempora ipsum adipisci tenetur sunt quae exercitationem sed pariatur porro!",
+      "The foundation day of Emerge marked the beginning of a creative community built to celebrate poetry, literature, and art. It became a platform for budding poets to express emotions, share ideas, and connect through words.",
   },
   {
-    date: "2022",
-    title: "First Milestone",
+    date: "11 July 2020",
+    title: "Logo Reveal",
     description:
-      "Lorem ipsum dolor sit amet consectetur adipisicing elit. Fuga officiis tempora ipsum adipisci tenetur sunt quae exercitationem sed pariatur porro!",
+      "Emerge officially unveiled its logo, symbolizing creativity, self-expression, and unity. This visual identity gave the club a strong presence and established its branding for future literary endeavors.",
   },
   {
-    date: "2023",
-    title: "Launch",
+    date: "10 September 2020",
+    title: "Aagaz",
     description:
-      "Lorem ipsum dolor sit amet consectetur adipisicing elit. Fuga officiis tempora ipsum adipisci tenetur sunt quae exercitationem sed pariatur porro!",
+      "Aagaz marked a new beginning with a creative revival post-pandemic. It introduced fresh talent and initiated a year filled with poetic, cultural, and literary milestones for the club.",
   },
    {
-    date: "2024",
-    title: "Launch",
+    date: "24 June 2023",
+    title: "3rd Anniversary Celebration",
     description:
-      "Lorem ipsum dolor sit amet consectetur adipisicing elit. Fuga officiis tempora ipsum adipisci tenetur sunt quae exercitationem sed pariatur porro!",
+      "Emerge celebrated three years of poetic excellence. This milestone showcased the club’s journey from its inception to becoming a recognized literary platform nurturing creativity and passion.",
   },
    {
-    date: "2025",
-    title: "Launch",
+    date: "22 July 2023 ",
+    title: "Emerge Day",
     description:
-      "Lorem ipsum dolor sit amet consectetur adipisicing elit. Fuga officiis tempora ipsum adipisci tenetur sunt quae exercitationem sed pariatur porro!",
+      "A grand annual celebration highlighting members’ achievements, performances, and creative works. It became one of the club’s flagship events, strengthening community spirit and recognition.",
   },
    {
-    date: "2026",
-    title: "Launch",
+    date: "13 August 2023",
+    title: "Antotgatva 4.0",
     description:
-      "Lorem ipsum dolor sit amet consectetur adipisicing elit. Fuga officiis tempora ipsum adipisci tenetur sunt quae exercitationem sed pariatur porro!",
+      "A powerful open mic event under the Antotgatva series, encouraging writers and performers to share untold stories. The 4th edition saw overwhelming participation and creative diversity.",
   },
    {
-    date: "2027",
-    title: "Launch",
+    date: "13 Feb 2025",
+    title: "Farzi Mushaira",
     description:
-      "Lorem ipsum dolor sit amet consectetur adipisicing elit. Fuga officiis tempora ipsum adipisci tenetur sunt quae exercitationem sed pariatur porro!",
+      "Farzi Mushaira, conducted under YASH 2K25, was a hugely successful event that significantly increased the popularity of the club.",
+  },
+   {
+    date: "21 Sep 2025",
+    title: "Grandstand 5.0",
+    description:
+      "Marking five years of poetic evolution, Emerge reflected on its inspiring journey, growth, and impact. The day featured performances, reflections, and gratitude toward members who shaped its legacy.",
   }
 ];
 interface TimelineItemType {
@@ -82,23 +88,20 @@ function TimelineItem({ item, index }:prop) {
         initial={{ opacity: 0, y: 50 }}
         animate={inView ? { opacity: 1, y: 0 } : {}}
         transition={{ duration: 0.6, ease: "easeOut" }}
-        className="relative flex items-start gap-4 group-odd:flex-row-reverse cursor-default group-odd:text-right group-even:order-last"
+        className="relative flex md:items-start items-center gap-4  group-odd:flex-row-reverse cursor-default group-odd:text-right group-even:order-last"
       >
         <span className="relative size-3 shrink-0 before:content-[''] before:absolute before:top-1/2 before:left-1/2 before:size-2 before:-translate-x-1/2  before:-translate-y-1/2  before:rounded-2xl    before:bg-white rounded-full bg-blue-600"></span>
         <div
         
         className="timeline-wrapper relative -mt-2 ">
-        <div    
-  className={`timeline-img hidden md:block absolute h-32 w-52 opacity-0 transition-all  scale-0  -top-20 rounded bg-red-200
-    ${index % 2 === 0 ? 'left-0' : 'right-0'}`}
-></div>
+    
           <time className="text-xs/none font-medium text-gray-700">
             {item.date}
           </time>
 
-          <h3 className={`${inter.className} text-lg font-bold text-gray-900`}>{item.title}</h3>
+          <h3 className={`${inter.className} text-lg ${index === 0 && "w-30 ml-30"} font-bold text-gray-900`}>{item.title}</h3>
 
-          <p className={` ${inter.className} mt-0.5 md:w-96 w-40  text-sm text-gray-700`}>{item.description}</p>
+          <p className={` ${inter.className} mt-0.5  ${index === 0 && "ml-30"} md:w-96 w-32 text-xs  md:text-sm text-gray-700`}>{item.description}</p>
         </div>
       </motion.div>
 

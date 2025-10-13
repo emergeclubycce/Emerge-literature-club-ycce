@@ -28,17 +28,24 @@ function ProfileCard({name,post,index,linkedIn ,instagram}:profileProb) {
         {/* Bottom gradient overlay */}
         <div className="absolute bottom-0 w-full h-30 bg-gradient-to-t from-white to-transparent"></div>
       <div className='h-30 w-10  absolute top-0 right-0 p-2 flex flex-col gap-3 '>
+            {
+              linkedIn && 
+
             <Link href={`${linkedIn}`}>
             <div className='h-6 w-6 outline-2 outline-zinc-500 shadow-2xl  rounded-2xl bg-white cursor-pointer flex items-center justify-center'>
                <LucideLinkedin fill='#0073B2' color='#0073B2' size={15}/>
             </div>
-            
             </Link>
+            }
+            
+            {instagram &&
             <Link  href={`${instagram}`}>
              <div className='h-6 w-6   rounded-2xl bg-white cursor-pointer flex items-center justify-center'>
                <Instagram   size={15}/>
             </div>
             </Link>
+            
+            }
       </div>
       </div>
 

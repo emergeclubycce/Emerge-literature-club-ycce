@@ -62,13 +62,10 @@ function Page() {
 
 
 
-
-
-
   return (
 
     <>
-   <Loader/>
+   {/* <Loader/> */}
    
    
    {/* page1 */}
@@ -97,7 +94,9 @@ function Page() {
            <button className={` ${inter.className} px-3 py-2  text-white bg-sky-500 font-medium  mt-2 rounded-2xl md:hidden flex gap-2  `}>Get Started  <MoveRight className='group-hover:translate-x-1 transition-all'/></button>
      </div>  
        
+       <Link href={"/about-us"}>
       <Maquee />
+       </Link>
     </div>
 
 
@@ -112,10 +111,13 @@ function Page() {
          <p className='font-light text-center'>A glimpse of our Literature, passion, and creative expression Emerge Literature Club, YCCE.</p>
         </div>
        <LayoutGridDemo/> 
+       <Link href={"/event"}>
+       
            <div className="group h-full w-full  flex items-center justify-center gap-1 cursor-pointer">
         <h1 className=" relative font-medium before:content-[''] before:absolute before:bottom-0 before:left-0 before:w-0 before:h-[1px] before:bg-sky-500 before:rounded-2xl hover:before:w-full before:transition-all  text-gray-600 ">View All Event</h1>
        <MoveRight className='group-hover:translate-x-1 transition-all'/>
         </div>   
+       </Link>
      </div>
 
     {/* Page 3 */}
@@ -145,11 +147,13 @@ function Page() {
                  <p className={` ${inter.className} text-center text-sm md:text-[16px]  w-80 md:w-[40rem] mt-10`}> 
                    Whether you re a seasoned poet or just beginning to rhyme your thoughts, Emerge is your stage to grow, express, and inspire. Join us, and let your words emerge.
                 </p>
+<Link href={"/about-us"}>
 
                    <div className="group flex items-center justify-center mt-10 gap-1 cursor-pointer">
         <h1 className=" relative font-medium before:content-[''] before:absolute before:bottom-0 before:left-0 before:w-0 before:h-[2px] before:bg-sky-500 before:rounded-2xl hover:before:w-full before:transition-all  text-gray-600 ">Know More About Us</h1>
        <MoveRight className='group-hover:translate-x-1 transition-all'/>
         </div>   
+</Link>
            </div>   
     </div>
 
@@ -160,12 +164,12 @@ function Page() {
              <h2 className={` ${inter.className} text-3xl md:text-4xl text-gray-500 text-center font-bold mb-10`}>Checkout Our <span className='text-sky-500 '>Shers</span> Section </h2>
              <SherCard writter={"emerge"} image={"/storage/1.jpg"} caption={"The Grandstand 5.0 – Open Mic Final Round, held on 22nd September 2025 at the CCC Auditorium, featured 25 performers selected from 100 participants. Organized by the EMERGE Literature Club of YCCE, the event showcased a vibrant mix of shayari, stand-up, and other performances. Judge Dr. Arvinder Kaur provided motivating feedback, encouraging participants to refine their craft. The program successfully promoted creativity, confidence, and community, reflecting EMERGE’s mission to nurture literary and artistic talent at YCCE."} />
 
-                   <div className="group flex items-center justify-center mt-10 gap-1 cursor-pointer">
         <Link  href={"/shers"}>
+                   <div className="group flex items-center justify-center mt-10 gap-1 cursor-pointer">
         <h1 className=" relative font-medium before:content-[''] before:absolute before:bottom-0 before:left-0 before:w-0 before:h-[2.5px] before:bg-sky-500 before:rounded-2xl hover:before:w-full before:transition-all  text-gray-600 ">See Shers Section</h1>
-        </Link>
        <MoveRight className='group-hover:translate-x-1 transition-all'/>
         </div>   
+        </Link>
            </div>   
     </div>
 

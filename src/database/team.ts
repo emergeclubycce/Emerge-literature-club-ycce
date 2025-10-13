@@ -11,8 +11,8 @@ const  core = [
     name:"Muchkundraje Thote ",
      post:"Technical head",
        index:2,
-         Linkedin : "",
-    Instagram:"",
+         Linkedin : "https://www.linkedin.com/in/muchkund-thote/",
+    
     email:""
 }, 
 {
@@ -55,7 +55,7 @@ const  core = [
     post:"Publicity Head ",
       index:8,
          Linkedin : "https://www.linkedin.com/in/siya-khurana-049414296/",
-    Instagram:"",
+   
     email:""
 }, 
 {
@@ -77,7 +77,7 @@ const  semicore = [
     post:"Technical cohead",
     index:14,
          Linkedin : "https://www.linkedin.com/in/swatisanghamitra-samantaray-08a705330?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app",
-    Instagram:"",
+   
     email:""
 },
  {
@@ -106,16 +106,7 @@ const  semicore = [
     email:""
 
 }, 
-
-   {
-    name:"Gauri Deore ",
-    post:"Executive Coordinator ",
-    index:11,
-         Linkedin : "https://www.linkedin.com/in/gaurideore?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app",
-    Instagram:"https://www.instagram.com/gauri_deore23?igsh=ZXlwZHk4djJrM29p    ",
-    email:""
-
-}, 
+ 
    {
     name:"Satvik Nilawar  ",
     post:"Public Relation Co-head ",
@@ -156,14 +147,15 @@ const  semicore = [
     Instagram:"",
     email:""
 },
-{
-    name:"Jay kadao",
-    post:"Operation Semicore",
-    index:20,
-         Linkedin : "https://www.linkedin.com/in/jay-kadao-870aa6372?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app",
-    Instagram:"https://www.instagram.com/p_v_d811?igsh=d2tpY3V5enllOXUy",
+    {
+    name:"Komal Bhelawe",
+    post:"Hall management ",
+    index:24,
+         Linkedin : "https://www.linkedin.com/in/komal-bhelawe-40b361360/",
+     
     email:""
 },
+
 
 ]
 
@@ -181,7 +173,17 @@ const vp =[{
          Linkedin : "https://www.linkedin.com/in/rewantchaudhari2004",
     Instagram:"https://www.instagram.com/dc_rewant?igsh=MXJsamltNHVmZGJ1NA==",
     email:""
-}]
+},
+{
+    name:"Nishita Dande",
+    post:'Literary VP',
+    index:23,
+         Linkedin : "https://www.linkedin.com/in/nishita-dande",
+    Instagram:"https://www.instagram.com/dc_rewant?igsh=MXJsamltNHVmZGJ1NA==",
+    email:""
+}
+
+]
 
 
 
