@@ -40,7 +40,7 @@ function page() {
       <div className='min-h-30 w-full  flex flex-wrap items-center gap-4 mb-40  justify-center' >
           
           {core.map((val ,i)=>(
-            <Profilecard key={i} name={val.name} post={val.post} index={val.index}  linkedIn = {val.Linkedin} instagram ={val.Instagram}/>
+            <Profilecard key={i} name={val.name} post={val.post} index={val.index}  linkedIn = {val.Linkedin ?? ""} instagram ={val.Instagram  ?? ""}/>
 
           ))}
         
@@ -49,7 +49,7 @@ function page() {
         <h2 className={` ${inter.className} text-4xl text-gray-500 text-center font-bold mb-10`}>Semi Core Emerge </h2>
       <div className='min-h-30 w-full  flex flex-wrap items-center gap-4 mb-40  justify-center' >
         {semicore.map((val ,i)=>(
-            <Profilecard key={i} name={val.name} post={val.post} index={val.index}  linkedIn = {val.Linkedin} instagram ={val.Instagram} />
+            <Profilecard key={i} name={val.name} post={val.post} index={val.index}  linkedIn = {val.Linkedin ?? ""} instagram ={val.Instagram ?? ""} />
 
           ))}
          
