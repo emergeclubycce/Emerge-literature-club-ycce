@@ -68,12 +68,13 @@ function Loader() {
                 <h1 className='suniyo-1 text-2xl opacity-0'>Suniye</h1>
                 <h1 className='suniyo-2 text-2xl opacity-0'>Suniye</h1>
             </div>
-            <h1 className=' wrap  text-3xl flex gap-3  '>
-                <span className='poetry-word opacity-0 inline-block'> Ke</span>
-               <span className='poetry-word opacity-0 inline-block'> Arz</span>  
-                <span className='poetry-word opacity-0 inline-block'> kia</span>
-                <span className='poetry-word opacity-0 inline-block'> he</span>  
-                  <span className='poetry-word opacity-0 inline-block'> Ki...</span>  </h1>
+            <h1 className=' wrap text-[23px] md:text-3xl flex gap-2 md:gap-3  '>
+                
+               <span className='poetry-word opacity-0  inline-block'> Arz</span>  
+                <span className='poetry-word opacity-0 inline-block'> Hai, </span>
+                <span className='poetry-word opacity-0 inline-block'>zara </span>
+                <span className='poetry-word opacity-0 inline-block'> Gaur</span>  
+                  <span className='poetry-word opacity-0 inline-block'>Farmaaiye...</span>  </h1>
         </div>
     )
 }

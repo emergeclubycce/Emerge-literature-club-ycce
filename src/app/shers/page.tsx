@@ -26,7 +26,7 @@ function page() {
   
     
    <main className={`${inter.className} min-h-screen w-full flex flex-col items-center justify-center `}>
-    <h2 className={` ${inter.className} text-4xl text-gray-500 text-center font-bold mt-20 mb-10`}>Shers</h2>
+    <h2 className={` ${inter.className} text-4xl text-gray-500 text-center font-bold mt-20 mb-10`}>Sher-Shayari</h2>
     <div className='min-h-100vh w-full p-2 mb-20  flex flex-col items-center justify-center'>
 {
   sher.map((val ,ind)=>(

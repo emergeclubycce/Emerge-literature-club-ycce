@@ -35,7 +35,7 @@ function Page() {
           <div key={ind} className="h-[35rem] border-2 p-4 rounded-2xl border-gray-200 flex flex-col">
             <div className="h-60 sm:h-72 md:h-80 w-full overflow-hidden rounded-2xl">
               <Image
-                src="/image/event1.JPG"
+                src={val.image}
                 alt="event"
                 width={800}
                 height={600}

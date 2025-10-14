@@ -52,7 +52,7 @@ function ProfileCard({name,post,index,linkedIn ,instagram}:profileProb) {
       {/* Text Content */}
       <div className="relative -m-7 text-center px-4 ">
         <h2 className=" inter font-bold text-xl opacity-90">{name}</h2>
-        <p className="text-gray-600">  {post}  </p>
+        <p className="text-gray-600 capitalize">  {post}  </p>
       </div>
 
       

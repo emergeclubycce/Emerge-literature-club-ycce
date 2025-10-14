@@ -136,9 +136,9 @@ function Page() {
            
            <div className='h-full w-full flex  flex-col items-center justify-center z-20'>
              <div className='h-15 w-15 rounded-full overflow-hidden border-[1px] border-gray-400  '>
-                      <Image src='/image/image.png' alt='logo' width={100} height={100} />
+                      <Image src='/image/logo.png' alt='logo' width={100} height={100} />
                      </div>
-                <h2 className={`emerge text-2xl md:text-4xl text-black text-center`}>About</h2>
+                <h2 className={`emerge text-2xl  mt-2  md:text-4xl text-black text-center`}>About</h2>
                 <p className={`${inter.className} font-medium text-xl md:text-2xl mt-3 text-center mb-2`}> Emerge <span>Literature</span> Club | YCCE.</p>
 
                 <p className={` ${inter.className} text-center text-sm md:text-[16px] px-3 md:px-0 md:text-md w-80 md:w-[40rem] mt-3`}> 
@@ -161,7 +161,7 @@ function Page() {
    <div className='h-screen w-full relative flex items-center gap-3 justify-center mt-20'>
               
            <div className='h-full w-full flex  flex-col items-center justify-center z-20'>
-             <h2 className={` ${inter.className} text-3xl md:text-4xl text-gray-500 text-center font-bold mb-10`}>Checkout Our <span className='text-sky-500 '>Shers</span> Section </h2>
+             <h2 className={` ${inter.className} text-3xl md:text-4xl text-gray-500 text-center font-bold mb-10`}>Checkout Our <span className='text-sky-500 '>Sher-Shayari</span> Section </h2>
              <SherCard writter={"emerge"} image={"/storage/1.jpg"} caption={"The Grandstand 5.0 – Open Mic Final Round, held on 22nd September 2025 at the CCC Auditorium, featured 25 performers selected from 100 participants. Organized by the EMERGE Literature Club of YCCE, the event showcased a vibrant mix of shayari, stand-up, and other performances. Judge Dr. Arvinder Kaur provided motivating feedback, encouraging participants to refine their craft. The program successfully promoted creativity, confidence, and community, reflecting EMERGE’s mission to nurture literary and artistic talent at YCCE."} />
 
         <Link  href={"/shers"}>

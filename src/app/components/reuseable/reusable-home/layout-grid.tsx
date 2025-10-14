@@ -57,7 +57,7 @@ const cards = [
   {id:6,
     className: "col-span-1",
   thumbnail:
-      "/image/event3.png",
+      "/image/event-6.JPG",
       number:1,
   },
 

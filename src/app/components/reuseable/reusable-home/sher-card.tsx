@@ -58,7 +58,7 @@ function SherCard({writter , caption , image}:SherProp) {
       <div className="h-auto w-full">
         <div className="w-full h-10 p-2 flex items-center justify-between">
           <div className="flex gap-3">
-            <HeartIcon />
+            <HeartIcon className=" focus:bg-pink-500" />
             <Send />
           </div>
 

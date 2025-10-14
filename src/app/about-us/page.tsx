@@ -45,12 +45,15 @@ function page() {
         </h2>
 
         <p className="w-full sm:w-[90%] md:w-[80%] mt-3 text-center text-gray-500 leading-relaxed text-sm sm:text-base md:text-lg mb-10">
-          Founded on 13th June 2020, Emerge is a vibrant community of poets, writers, and creative
+          Founded on  June 13 2020, Emerge is a vibrant community of poets, writers, and creative
           thinkers united by their love for words. What began as a small circle of expression has now
           grown into one of the most active literary clubs, nurturing talent and giving voice to
           emotions that often remain unspoken. Through events like Guftagu, Antotgatva, and Grand
           Stand, the club has provided a platform for emerging artists to share their stories,
-          perform original pieces, and connect with a like-minded audience. Over the years, Emerge
+          perform original pieces, and connect with a like-minded audience.
+          <br />
+          <br />
+          <br /> Over the years, Emerge
           has celebrated art in all its forms — poetry, storytelling, music, and visual creativity —
           while fostering confidence, collaboration, and cultural expression among its members.
           Rooted in passion and driven by purpose, Emerge continues to inspire individuals to speak
