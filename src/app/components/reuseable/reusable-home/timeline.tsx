@@ -99,7 +99,7 @@ function TimelineItem({ item, index }:prop) {
             {item.date}
           </time>
 
-          <h3 className={`${inter.className} text-lg ${index === 0 && "w-30 ml-30"} font-bold text-gray-900`}>{item.title}</h3>
+          <h3 className={`${inter.className} text-lg ${index === 0 && "w-30 md:whitespace-nowrap md:ml-70 ml-30"} font-bold text-gray-900`}>{item.title}</h3>
 
           <p className={` ${inter.className} mt-0.5  ${index === 0 && "ml-30"} md:w-96 w-32 text-xs  md:text-sm text-gray-700`}>{item.description}</p>
         </div>

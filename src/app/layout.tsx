@@ -1,8 +1,10 @@
 
+
 import type { Metadata } from "next";
 // import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Nav from "./components/reuseable/reusable-home/nav";
+import NavWrapper from "./components/reuseable/reusable-home/NavWrapper";
+
 
 
 
@@ -20,6 +22,8 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+
+
  
   return (
     <html lang="en">
@@ -27,8 +31,8 @@ export default function RootLayout({
         className={` antialiased`}
          suppressHydrationWarning={true}
       >
-     <Nav/>
-        {children}
+        <NavWrapper>{children}</NavWrapper>
+    
       </body>
     </html>
   );
