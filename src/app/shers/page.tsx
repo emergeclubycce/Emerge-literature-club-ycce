@@ -7,6 +7,8 @@ import { Inter } from 'next/font/google'
 import SherCard from '../components/reuseable/reusable-home/sher-card'
 import { useLenis } from '@/utils/lenis'
 import Image from 'next/image'
+import { sher } from '@/database/team'
+import { validateHeaderName } from 'http'
 
 
 
@@ -26,8 +28,13 @@ function page() {
    <main className={`${inter.className} min-h-screen w-full flex flex-col items-center justify-center `}>
     <h2 className={` ${inter.className} text-4xl text-gray-500 text-center font-bold mt-20 mb-10`}>Shers</h2>
     <div className='min-h-100vh w-full p-2 mb-20  flex flex-col items-center justify-center'>
-            <SherCard writter={"emerge"} image={"/storage/1.jpg"} caption={"The Grandstand 5.0 – Open Mic Final Round, held on 22nd September 2025 at the CCC Auditorium, featured 25 performers selected from 100 participants. Organized by the EMERGE Literature Club of YCCE, the event showcased a vibrant mix of shayari, stand-up, and other performances. Judge Dr. Arvinder Kaur provided motivating feedback, encouraging participants to refine their craft. The program successfully promoted creativity, confidence, and community, reflecting EMERGE’s mission to nurture literary and artistic talent at YCCE."} />
-         
+{
+  sher.map((val ,ind)=>(
+    
+    <SherCard key={ind} writter={val.writter} image={val.image} caption={val.caption} />
+
+  ))
+}    
          
     </div>
       <footer className='h-50 w-full  border-t-[1px] border-gray-300  flex flex-col items-center justify-center'>

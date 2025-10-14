@@ -3,6 +3,7 @@ import React from "react";
 import { Inter } from "next/font/google";
 import Image from "next/image";
 import { useLenis } from "@/utils/lenis";
+import { Event } from "@/database/team";
 
 
 const inter = Inter({
@@ -28,7 +29,10 @@ function Page() {
         {/* Events Grid */}
         <div className="min-h-screen w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 p-6 sm:p-10">
           {/* Card */}
-          <div className="h-fit border-2 p-4 rounded-2xl border-gray-200 flex flex-col">
+
+          {
+            Event.map((val ,ind)=>(
+          <div key={ind} className="h-[35rem] border-2 p-4 rounded-2xl border-gray-200 flex flex-col">
             <div className="h-60 sm:h-72 md:h-80 w-full overflow-hidden rounded-2xl">
               <Image
                 src="/image/event1.JPG"
@@ -40,114 +44,18 @@ function Page() {
             </div>
             <h1 className="mt-2 text-xs text-slate-500">2025 Oct</h1>
             <h1 className="text-lg sm:text-xl font-semibold text-zinc-600">
-              Farzi Mushaira
+              {val.name}
             </h1>
             <p className="text-sm leading-5 text-zinc-400">
-              Farzi Mushaira is a satirical comedy show that parodies traditional
-              Urdu poetry gatherings with humorous, fake shayari.
+            {val.discription}
             </p>
           </div>
 
-          {/* Copy 2 */}
-          <div className="h-fit border-2 p-4 rounded-2xl border-gray-200 flex flex-col">
-            <div className="h-60 sm:h-72 md:h-80 w-full overflow-hidden rounded-2xl">
-              <Image
-                src="/image/event1.JPG"
-                alt="event"
-                width={800}
-                height={600}
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <h1 className="mt-2 text-xs text-slate-500">2025 Oct</h1>
-            <h1 className="text-lg sm:text-xl font-semibold text-zinc-600">
-              Farzi Mushaira
-            </h1>
-            <p className="text-sm leading-5 text-zinc-400">
-              Farzi Mushaira is a satirical comedy show that parodies traditional
-              Urdu poetry gatherings with humorous, fake shayari.
-            </p>
-          </div>
+            ))
+          }
 
-          {/* Copy 3 */}
-          <div className="h-fit border-2 p-4 rounded-2xl border-gray-200 flex flex-col">
-            <div className="h-60 sm:h-72 md:h-80 w-full overflow-hidden rounded-2xl">
-              <Image
-                src="/image/event1.JPG"
-                alt="event"
-                width={800}
-                height={600}
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <h1 className="mt-2 text-xs text-slate-500">2025 Oct</h1>
-            <h1 className="text-lg sm:text-xl font-semibold text-zinc-600">
-              Farzi Mushaira
-            </h1>
-            <p className="text-sm leading-5 text-zinc-400">
-              Farzi Mushaira is a satirical comedy show that parodies traditional
-              Urdu poetry gatherings with humorous, fake shayari.
-            </p>
-          </div>
-
-             <div className="h-fit border-2 p-4 rounded-2xl border-gray-200 flex flex-col">
-            <div className="h-60 sm:h-72 md:h-80 w-full overflow-hidden rounded-2xl">
-              <Image
-                src="/image/event1.JPG"
-                alt="event"
-                width={800}
-                height={600}
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <h1 className="mt-2 text-xs text-slate-500">2025 Oct</h1>
-            <h1 className="text-lg sm:text-xl font-semibold text-zinc-600">
-              Farzi Mushaira
-            </h1>
-            <p className="text-sm leading-5 text-zinc-400">
-              Farzi Mushaira is a satirical comedy show that parodies traditional
-              Urdu poetry gatherings with humorous, fake shayari.
-            </p>
-          </div>
-
-                  <div className="h-fit border-2 p-4 rounded-2xl border-gray-200 flex flex-col">
-            <div className="h-60 sm:h-72 md:h-80 w-full overflow-hidden rounded-2xl">
-              <Image
-                src="/image/event1.JPG"
-                alt="event"
-                width={800}
-                height={600}
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <h1 className="mt-2 text-xs text-slate-500">2025 Oct</h1>
-            <h1 className="text-lg sm:text-xl font-semibold text-zinc-600">
-              Farzi Mushaira
-            </h1>
-            <p className="text-sm leading-5 text-zinc-400">
-              Farzi Mushaira is a satirical comedy show that parodies traditional
-              Urdu poetry gatherings with humorous, fake shayari.
-            </p>
-          </div>
-                  <div className="h-fit border-2 p-4 rounded-2xl border-gray-200 flex flex-col">
-            <div className="h-60 sm:h-72 md:h-80 w-full overflow-hidden rounded-2xl">
-              <Image
-                src="/image/event1.JPG"
-                alt="event"
-                width={800}
-                height={600}
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <h1 className="mt-2 text-xs text-slate-500">2025 Oct</h1>
-            <h1 className="text-lg sm:text-xl font-semibold text-zinc-600">
-              Farzi Mushaira
-            </h1>
-            <p className="text-sm leading-5 text-zinc-400">
-              Farzi Mushaira is a satirical comedy show that parodies traditional
-              Urdu poetry gatherings with humorous, fake shayari.
-            </p>
-          </div>
+          
+       
           
         </div>
 
