@@ -197,7 +197,7 @@ function Nav() {
         </div>
 
         <h1 className="text-center text-[10px] text-gray-500 mt-5">
-          @2025 Emerge Literature Club | Ycee
+          @2025 Emerge Literature Club | YCCE
         </h1>
       </div>
 
