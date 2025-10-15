@@ -92,7 +92,9 @@ function Page() {
        
      <div className='screen-wrap  h-[80%]  flex-col w-[96%] md:w-[80%] z-20 flex items-center justify-center shadow-xl '>
           <Image ref={cardRef} draggable={false} src='/image/Litraure-logo.png' alt='logo' width={700} height={200} className='parallex'/>
+         <Link href={"/shers"}>
            <button className={` ${inter.className} px-3 py-2  text-zinc-600 border-2 border-gray-400 bg-white-500 font-medium  mt-2 rounded-2xl  flex gap-2  `}>Get Started  <MoveRight className='group-hover:translate-x-1 transition-all'/></button>
+         </Link>
      </div>  
        
        <Link href={"/about-us"}>
