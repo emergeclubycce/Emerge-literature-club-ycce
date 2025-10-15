@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 // import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import NavWrapper from "./components/reuseable/reusable-home/NavWrapper";
+import { Analytics } from "@vercel/analytics/next"
 
 
 
@@ -31,6 +32,8 @@ export default function RootLayout({
         className={` antialiased`}
          suppressHydrationWarning={true}
       >
+
+        <Analytics/>
         <NavWrapper>{children}</NavWrapper>
     
       </body>

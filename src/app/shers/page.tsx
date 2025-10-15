@@ -8,7 +8,8 @@ import SherCard from '../components/reuseable/reusable-home/sher-card'
 import { useLenis } from '@/utils/lenis'
 import Image from 'next/image'
 import { sher } from '@/database/team'
-import { validateHeaderName } from 'http'
+import Footer from '../components/reuseable/reusable-home/Footer'
+
 
 
 
@@ -27,7 +28,7 @@ function page() {
     
    <main className={`${inter.className} min-h-screen w-full flex flex-col items-center justify-center `}>
     <h2 className={` ${inter.className} text-4xl text-gray-500 text-center font-bold mt-20 mb-10`}>Sher-Shayari</h2>
-    <div className='min-h-100vh w-full p-2 mb-20  flex flex-col items-center justify-center'>
+    <div className='min-h-100vh w-full p-2 mb-20 gap-2  flex flex-col items-center justify-center'>
 {
   sher.map((val ,ind)=>(
     
@@ -37,15 +38,7 @@ function page() {
 }    
          
     </div>
-      <footer className='h-50 w-full  border-t-[1px] border-gray-300  flex flex-col items-center justify-center'>
-                     <div className='h-15 w-15 rounded-full overflow-hidden border-[1px] border-gray-400  '>
-                              <Image src='/image/logo.png' alt='logo' width={100} height={100} />
-                     </div>
-                    
-                      <h1 className='mt-10 text-center px-2'>
-                             Designed & Developed with ❤️ by Muchkundraje thote 
-                      </h1>
-           </footer>
+    <Footer/>
    </main>
 
     </>

@@ -1,4 +1,4 @@
-import { image } from "motion/react-client"
+
 
 const  core = [
     {
@@ -206,12 +206,12 @@ const Event=[
      },
         {
            name:"Musical Poetry",
-       image:"/image/musical.JPG",
+       image:"/image/musical.jpg",
           discription:"The Musical Poetry Evening , organized by Emerge-The Literature Club & Seven String Music Club of YCCE was a unique blend of music and literature, bringing together the soulful art of poetry and the rhythm of live music. It celebrated the creative spirit of students while offering them a platform to express emotions through both verses and tunes. The event featured a diverse range of performances, from original compositions to timeless classics, creating an atmosphere filled with warmth and inspiration."
      },
      {
            name:"Grandstand 5.0",
-          image:"/image/team.JPG",
+          image:"/image/team.jpg",
           discription:"The Grandstand 5.0 – Open Mic Final Round held on 22nd September 2025 at the CCC Auditorium , was an  engaging and vibrant event, bringing together 25 shortlisted performers from 100 initial participants.  Organized by the EMERGE Literature Club of YCCE, the program celebrated creativity, spoken word, and self-expression."
      }
 ]

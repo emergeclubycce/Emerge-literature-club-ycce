@@ -16,7 +16,7 @@ const inter = Inter({
 
 const timelineData = [
   {
-    date: "13 June 2020",
+    date: "21 June 2020",
     title: "Formation of Emerge Club",
     description:
       "The foundation day of Emerge marked the beginning of a creative community built to celebrate poetry, literature, and art. It became a platform for budding poets to express emotions, share ideas, and connect through words.",
@@ -28,7 +28,7 @@ const timelineData = [
       "Emerge officially unveiled its logo, symbolizing creativity, self-expression, and unity. This visual identity gave the club a strong presence and established its branding for future literary endeavors.",
   },
   {
-    date: "10 September 2020",
+    date: "30 July 2020",
     title: "Aagaz",
     description:
       "Aagaz marked a new beginning with a creative revival post-pandemic. It introduced fresh talent and initiated a year filled with poetic, cultural, and literary milestones for the club.",
@@ -56,6 +56,12 @@ const timelineData = [
     title: "Farzi Mushaira",
     description:
       "Farzi Mushaira, conducted under YASH 2K25, was a hugely successful event that significantly increased the popularity of the club.",
+  },
+   {
+    date: "3 Sep 2025",
+    title: "Convert into  Literature ",
+    description:
+      "The Emerge Poetry Club has been transformed into the Emerge Literature Club to encompass all domains of literature and creative expression."
   },
    {
     date: "21 Sep 2025",

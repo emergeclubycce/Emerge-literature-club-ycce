@@ -18,10 +18,10 @@ export function AccordionDemo() {
       defaultValue="item-1"
     >
       <AccordionItem value="item-1">
-        <AccordionTrigger> What is Emerge Poetry Club?</AccordionTrigger>
+        <AccordionTrigger> What is Emerge Literature Club ?</AccordionTrigger>
         <AccordionContent className="flex flex-col gap-4 text-balance transition-all">
           <p>
-         Emerge is YCCE's official poetry club—a space where writers, performers, and lovers of poetry unite to express, perform, and grow together.
+         Emerge is YCCE's official Literature club—a space where writers, performers, and lovers of poetry , speech unite to express, perform, and grow together.
           </p>
          
         </AccordionContent>
