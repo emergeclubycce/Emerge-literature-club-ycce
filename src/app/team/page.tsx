@@ -57,7 +57,7 @@ function page() {
     </div>
 
 
-          <h2 className={` ${inter.className} text-4xl text-gray-500 text-center font-bold mb-10`}>Website Develope By</h2>
+          <h2 className={` ${inter.className} text-4xl text-gray-500 text-center font-bold mb-10`}>Website Developed By</h2>
       <div className='min-h-30 w-full  flex flex-wrap items-center gap-4 mb-40  justify-center' >
           <Profilecard name={"Muchkundraje Thote"} post={"Technical Head"} index={2} linkedIn='' instagram=' '  />
        

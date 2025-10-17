@@ -135,7 +135,7 @@ const  semicore = [
 },
 {
     name:"Nidhi Patil",
-    post:"Desgin co-head",
+    post:"Design co-head",
     index:21,
          Linkedin : "https://www.linkedin.com/in/nidhi-patil-160444369?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app",
     Instagram:"https://www.instagram.com/nidhipatil.21?igsh=MXo0eWpzMGYzanVx",
