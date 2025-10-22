@@ -32,7 +32,7 @@ function page() {
 {
   sher.map((val ,ind)=>(
     
-    <SherCard key={ind} writter={val.writter} image={val.image} caption={val.caption} />
+    <SherCard key={ind} writter={val.writter} image={val.image} caption={val.caption} idx={ind} />
 
   ))
 }    

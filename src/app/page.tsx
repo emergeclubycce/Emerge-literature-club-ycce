@@ -165,7 +165,7 @@ function Page() {
               
            <div className='h-full w-full flex  flex-col items-center justify-center z-20'>
              <h2 className={` ${inter.className} text-3xl md:text-4xl text-gray-500 text-center font-bold mb-10`}>Checkout Our <span className='text-sky-500 '>Sher-Shayari</span> Section </h2>
-             <SherCard writter={"emerge"} image={"/storage/1.jpg"} caption={"The Grandstand 5.0 – Open Mic Final Round, held on 22nd September 2025 at the CCC Auditorium, featured 25 performers selected from 100 participants. Organized by the EMERGE Literature Club of YCCE, the event showcased a vibrant mix of shayari, stand-up, and other performances. Judge Dr. Arvinder Kaur provided motivating feedback, encouraging participants to refine their craft. The program successfully promoted creativity, confidence, and community, reflecting EMERGE’s mission to nurture literary and artistic talent at YCCE."} />
+             <SherCard writter={"emerge"} image={"/storage/1.jpg"} caption={"The Grandstand 5.0 – Open Mic Final Round, held on 22nd September 2025 at the CCC Auditorium, featured 25 performers selected from 100 participants. Organized by the EMERGE Literature Club of YCCE, the event showcased a vibrant mix of shayari, stand-up, and other performances. Judge Dr. Arvinder Kaur provided motivating feedback, encouraging participants to refine their craft. The program successfully promoted creativity, confidence, and community, reflecting EMERGE’s mission to nurture literary and artistic talent at YCCE."} idx={1} />
 
         <Link  href={"/shers"}>
                    <div className="group flex items-center justify-center mt-10 gap-1 cursor-pointer">

@@ -222,6 +222,11 @@ const Event=[
 
 const sher = [
      
+        {
+          writter:"Pranay Gabhane",
+           image:"/storage/5.png",
+          caption:"When faith meets feeling, poetry is born. Read Kya Usse Ishwar Khaunga Mai by Pranay, a beautiful dive into emotion and introspection."
+     },
      {
           writter:"emerge",
            image:"/storage/1.jpg",
