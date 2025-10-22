@@ -25,7 +25,7 @@ function SherCard({ writter, caption, image ,idx }: SherProp) {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `Sher by ${writter}`,
+          title: `Poem by ${writter}`,
           text: caption,
           url: `https://emergeycce.club/shers/share/${idx}`,
         });

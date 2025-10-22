@@ -21,7 +21,7 @@ export async function generateMetadata({
     title: 'Shared Sher',
     description: event.caption || 'Check out this amazing sher!',
     openGraph: {
-      title: `Sher by ${event.writter}`,
+      title: `Poem by ${event.writter} on Emerge Website `,
       description: event.caption,
       images: [event.image],
       url: `https://www.emergeycce.club/shers/share/${id}`, // ⬅️ Use id, not params.id
