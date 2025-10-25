@@ -20,7 +20,8 @@ export async function generateMetadata({
   params: Promise<{ id: string }> // ⬅️ Added Promise wrapper
 }): Promise<Metadata> {
   const { id } = await params; 
-  const event = sher[parseInt(id)];
+  
+ const event = sher.find(item => item.name == `${id}`);
   
   if (!event) {
     return {
@@ -53,8 +54,10 @@ export default async function page({
   params: Promise<{ id: string }> // ⬅️ Added Promise wrapper
 }) {
   const { id } = await params; // ⬅️ Await params
-  const event = sher[parseInt(id)];
-   // Convert string id to number
+  
+  const event = sher.find(item => item.name == `${id}`);
+  
+
 
 
   if (!event) {
@@ -73,6 +76,7 @@ export default async function page({
         image={event.image} 
         caption={event.caption}
         idx={1}
+        name={event.name}
       />
     </div>
 

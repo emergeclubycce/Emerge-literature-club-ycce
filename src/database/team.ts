@@ -225,33 +225,39 @@ const sher = [
             {
           writter:"@Om Bhoyar",
            image:"/storage/6.png",
-          caption:"Emotions woven in words — Om Bhoyar from 1st year Electronics brings to you ‘Saath Tumhaare’, a heartfelt expression of companionship and connection."
+          caption:"Emotions woven in words — Om Bhoyar from 1st year Electronics brings to you ‘Saath Tumhaare’, a heartfelt expression of companionship and connection",
+           name:"sathtumare"
      }  
      
      ,{
           writter:"@Pranay Gabhane",
            image:"/storage/5.png",
           caption:"When faith meets feeling, poetry is born. Read Kya Usse Ishwar Khaunga Mai by Pranay, a beautiful dive into emotion and introspection."
+          ,name:"kyauseishwarkhaunga"
      },
      {
           writter:"emerge",
            image:"/storage/1.jpg",
           caption:"The Grandstand 5.0 – Open Mic Final Round, held on 22nd September 2025 at the CCC Auditorium, featured 25 performers selected from 100 participants. Organized by the EMERGE Literature Club of YCCE, the event showcased a vibrant mix of shayari, stand-up, and other performances. Judge Dr. Arvinder Kaur provided motivating feedback, encouraging participants to refine their craft. The program successfully promoted creativity, confidence, and community, reflecting EMERGE’s mission to nurture literary and artistic talent at YCCE."
+         , name:"grandstand"
      },
      {
           writter:"@Jagdish Kachhawah",
           image:"/storage/3.png",
-          caption:""
+          caption:"",
+          name:"raakh"
      },
           {
           writter:"@Jagdish Kachhawah",
           image:"/storage/2.png",
-          caption:""
+          caption:"",
+          name:"kaal"
      },
       {
           writter:"@Shrutikaa Ghumde",
-           image:"/storage/4.png",
-          caption:""
+          image:"/storage/4.png",
+          caption:"",
+          name:"chahat"
      }
 ]
 

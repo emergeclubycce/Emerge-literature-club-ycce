@@ -16,9 +16,10 @@ interface SherProp {
   caption: string;
   image: string;
   idx : number;
+  name:string
 }
 
-function SherCard({ writter, caption, image ,idx }: SherProp) {
+function SherCard({ writter, caption, image ,idx , name }: SherProp) {
   
 
   const handleShare = async () => {
@@ -27,7 +28,7 @@ function SherCard({ writter, caption, image ,idx }: SherProp) {
         await navigator.share({
           title: `Poem by ${writter}`,
           text: caption,
-          url: `https://emergeycce.club/shers/share/${idx}`,
+          url: `https://emergeycce.club/shers/share/${name}`,
         });
       } catch (error) {
         console.log("Share cancelled", error);
