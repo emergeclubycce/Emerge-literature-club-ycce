@@ -222,7 +222,13 @@ const Event=[
 
 const sher = [
      
-        {
+            {
+          writter:"@Om Bhoyar",
+           image:"/storage/6.png",
+          caption:"Emotions woven in words — Om Bhoyar from 1st year Electronics brings to you ‘Saath Tumhaare’, a heartfelt expression of companionship and connection."
+     }  
+     
+     ,{
           writter:"@Pranay Gabhane",
            image:"/storage/5.png",
           caption:"When faith meets feeling, poetry is born. Read Kya Usse Ishwar Khaunga Mai by Pranay, a beautiful dive into emotion and introspection."
