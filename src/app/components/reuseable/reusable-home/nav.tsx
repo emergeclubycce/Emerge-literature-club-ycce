@@ -243,6 +243,12 @@ function Nav() {
             Team
           </h4>
         </Link>
+  <Link href={"/shers/submit"}>
+          <h4 className="before:content-[''] before:absolute before:bottom-0 relative before:left-0 before:h-0.5 before:w-0 hover:before:w-[120%] before:transition-all before:bg-blue-500">
+            Add Post
+          </h4>
+        </Link>
+        
 
         {user ? (
           <div className="relative" ref={desktopDropdownRef}>
@@ -333,6 +339,8 @@ function Nav() {
               <h1>Team</h1>
             </div>
           </Link>
+          
+          
 
           {user && (
             <>
