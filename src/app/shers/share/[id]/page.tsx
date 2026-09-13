@@ -1,86 +1,212 @@
-
-import { Metadata } from 'next';
-import SherCard from '@/app/components/reuseable/reusable-home/sher-card';
-import { sher } from '@/database/team';
-import { Inter } from 'next/font/google';
-import { useLenis } from '@/utils/lenis';
-import Footer from '@/app/components/reuseable/reusable-home/Footer';
-
-// ✅ Change the type to Promise<{ id: string }>
-
+import React from "react";
+import { Metadata } from "next";
+import Link from "next/link";
+import SherCard from "@/app/components/reuseable/reusable-home/sher-card";
+import { Inter } from "next/font/google";
+import Footer from "@/app/components/reuseable/reusable-home/Footer";
+import supabase from "@/config/supabase";
+import { ArrowLeft, AlertCircle } from "lucide-react";
 
 const inter = Inter({
-   subsets: ["latin"], 
-  variable:"--font-inter"
-})
+  subsets: ["latin"],
+  variable: "--font-inter",
+});
 
-export async function generateMetadata({ 
-  params 
-}: { 
-  params: Promise<{ id: string }> // ⬅️ Added Promise wrapper
+// Slug to image_url mapping for legacy backward compatibility
+const LEGACY_SLUG_IMAGE_MAP: Record<string, string> = {
+  sathtumare: "/storage/6.png",
+  kyauseishwarkhaunga: "/storage/5.png",
+  grandstand: "/storage/1.jpg",
+  raakh: "/storage/3.png",
+  kaal: "/storage/2.png",
+  chahat: "/storage/4.png",
+};
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
 }): Promise<Metadata> {
-  const { id } = await params; 
-  
- const event = sher.find(item => item.name == `${id}`);
-  
-  if (!event) {
+  const { id } = await params;
+  const numericId = parseInt(id, 10);
+  const slugKey = id.toLowerCase().trim();
+
+  let post: any = null;
+
+  if (isNaN(numericId)) {
+    const targetImage = LEGACY_SLUG_IMAGE_MAP[slugKey];
+    if (targetImage) {
+      const { data } = await supabase
+        .from("posts")
+        .select("id, user_id, author_name, content, image_url, status")
+        .eq("image_url", targetImage)
+        .eq("status", "approved")
+        .maybeSingle();
+      post = data;
+    }
+  } else {
+    const { data } = await supabase
+      .from("posts")
+      .select("id, user_id, author_name, content, image_url, status")
+      .eq("id", numericId)
+      .eq("status", "approved")
+      .maybeSingle();
+    post = data;
+  }
+
+  if (!post) {
     return {
-      title: 'Sher Not Found',
+      title: "Sher Not Found | Emerge Literature Club",
     };
   }
-  
+
+  let authorName = post.author_name?.trim() || "Anonymous";
+  if (!post.author_name && post.user_id) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("name")
+      .eq("user_id", post.user_id)
+      .maybeSingle();
+    if (profile?.name) authorName = profile.name;
+  }
+
+  const descriptionSnippet = post.content
+    ? post.content.replace(/\n/g, " ").slice(0, 150)
+    : "Check out this poem on Emerge Literature Club";
+
   return {
-    title: 'Shared Sher',
-    description: event.caption || 'Check out this amazing sher!',
+    title: `Sher by ${authorName} | Emerge Literature Club`,
+    description: descriptionSnippet,
     openGraph: {
-      title: `Poem by ${event.writter} on Emerge Website `,
-      description: event.caption,
-      images: [event.image],
-      url: `https://www.emergeycce.club/shers/share/${id}`, // ⬅️ Use id, not params.id
+      title: `Poem by ${authorName} | Emerge Literature Club`,
+      description: descriptionSnippet,
+      images: post.image_url ? [post.image_url] : ["/image/logo.png"],
+      url: `https://www.emergeycce.club/shers/share/${id}`,
     },
     twitter: {
-      card: 'summary_large_image',
-      title: `Sher by ${event.writter}`,
-      description: event.caption,
-      images: [event.image],
+      card: "summary_large_image",
+      title: `Sher by ${authorName}`,
+      description: descriptionSnippet,
+      images: post.image_url ? [post.image_url] : ["/image/logo.png"],
     },
   };
 }
 
-// ✅ Make the page component async and update the type
-export default async function page({ 
-  params 
-}: { 
-  params: Promise<{ id: string }> // ⬅️ Added Promise wrapper
+export default async function SharePage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
 }) {
-  const { id } = await params; // ⬅️ Await params
-  
-  const event = sher.find(item => item.name == `${id}`);
-  
+  const { id } = await params;
+  const numericId = parseInt(id, 10);
+  const slugKey = id.toLowerCase().trim();
 
+  let post: any = null;
 
-
-  if (!event) {
-    return <div>Sher not found</div>;
+  // Resolve either by legacy slug (mapped to real DB image_url) or by real numeric post ID
+  if (isNaN(numericId)) {
+    const targetImage = LEGACY_SLUG_IMAGE_MAP[slugKey];
+    if (targetImage) {
+      const { data } = await supabase
+        .from("posts")
+        .select("id, user_id, author_name, content, image_url, created_at, status")
+        .eq("image_url", targetImage)
+        .eq("status", "approved")
+        .maybeSingle();
+      post = data;
+    }
+  } else {
+    const { data } = await supabase
+      .from("posts")
+      .select("id, user_id, author_name, content, image_url, created_at, status")
+      .eq("id", numericId)
+      .eq("status", "approved")
+      .maybeSingle();
+    post = data;
   }
 
-  
+  if (!post) {
+    return renderNotFound();
+  }
+
+  // Author resolution priority:
+  // 1. post.author_name (legacy migrated posts)
+  // 2. profiles.name
+  // 3. fallback "Anonymous"
+  let authorName = post.author_name?.trim() || "Anonymous";
+  let authorPhoto: string | null = null;
+
+  if (!post.author_name && post.user_id) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("name, photo_url")
+      .eq("user_id", post.user_id)
+      .maybeSingle();
+
+    if (profile) {
+      authorName = profile.name || "Anonymous";
+      authorPhoto = profile.photo_url || null;
+    }
+  }
 
   return (
-    <>
-    
-    <div className="h-screen w-full bg-white mb-10 md:mb-30 flex flex-col mt-12 md:mt-20 items-center justify-center">
-        <h2 className={` ${inter.className} text-4xl text-gray-500 text-center font-bold mt-20 mb-10`}>Shared Sher</h2>
-      <SherCard 
-        writter={event.writter} 
-        image={event.image} 
-        caption={event.caption}
-        idx={1}
-        name={event.name}
-      />
-    </div>
+    <div className={`${inter.className} min-h-screen bg-gray-50 flex flex-col justify-between`}>
+      <main className="w-full flex flex-col items-center pt-24 pb-16 px-4">
+        <div className="w-full max-w-xl mb-6">
+          <Link
+            href="/shers"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-sky-600 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back to all Shers</span>
+          </Link>
+        </div>
 
-    <Footer/>
-    </>
+        <div className="mb-6 text-center">
+          <h1 className="text-3xl sm:text-4xl text-gray-600 font-bold">
+            Shared Sher
+          </h1>
+        </div>
+
+        <SherCard
+          id={post.id}
+          writter={authorName}
+          authorPhoto={authorPhoto}
+          image={post.image_url}
+          caption={post.content}
+          createdAt={post.created_at}
+          userId={post.user_id}
+        />
+      </main>
+
+      <Footer />
+    </div>
+  );
+}
+
+function renderNotFound() {
+  return (
+    <div
+      className={`${inter.className} min-h-screen bg-gray-50 flex flex-col justify-between`}
+    >
+      <main className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center text-red-500 mb-4">
+          <AlertCircle className="w-8 h-8" />
+        </div>
+        <h2 className="text-2xl font-bold text-zinc-800 mb-2">
+          Sher Not Found
+        </h2>
+        <p className="text-sm text-gray-500 max-w-sm mb-6 leading-relaxed">
+          This Shayari may not exist, is still pending moderation, or was removed.
+        </p>
+        <Link
+          href="/shers"
+          className="px-6 py-2.5 bg-sky-500 hover:bg-sky-600 text-white text-sm font-medium rounded-xl transition-colors shadow-sm"
+        >
+          Explore All Shers
+        </Link>
+      </main>
+      <Footer />
+    </div>
   );
 }

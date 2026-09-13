@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_2 as string
+const rawUrl = (process.env.NEXT_PUBLIC_SUPABASE_2 || '').trim()
+const supabaseUrl = rawUrl.replace(/\/rest\/v1\/?$/, '').replace(/\/+$/, '')
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_1 as string
 
 if (!supabaseAnonKey) {
