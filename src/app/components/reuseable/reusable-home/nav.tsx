@@ -8,6 +8,8 @@ import { Inter } from "next/font/google";
 import supabase from "@/config/supabase";
 import { usePathname, useRouter } from "next/navigation";
 
+import { syncUserProfile, UserProfile, getAvatarFromUser } from "@/utils/profile";
+
 // Define types for user and user metadata
 type UserMetadata = {
   picture?: string;
@@ -29,10 +31,13 @@ const inter = Inter({
 
 function Nav() {
   const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [dropdownOpen, setDropdownOpen] = useState<boolean>(false);
   const [scrolled, setScrolled] = useState<boolean>(false);
   const [menu, setmenu] = useState(false);
+  const [desktopImgError, setDesktopImgError] = useState(false);
+  const [mobileImgError, setMobileImgError] = useState(false);
 
   const pathname = usePathname();
   const router = useRouter();
@@ -47,18 +52,89 @@ function Nav() {
 
   // Initial user fetch & live session listener
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUser((data?.user as SupabaseUser) || null);
-    });
+    let isMounted = true;
+
+    supabase.auth
+      .getUser()
+      .then(({ data, error }) => {
+        if (!isMounted) return;
+
+        if (error) {
+          console.warn("Supabase auth session check notice:", error.message);
+
+          const isStaleSession =
+            error.message?.toLowerCase().includes("refresh token") ||
+            error.name === "AuthSessionMissingError" ||
+            error.status === 400 ||
+            error.status === 401;
+
+          if (isStaleSession) {
+            // Safely clear the invalid local session from storage
+            supabase.auth.signOut({ scope: "local" }).catch((e) => {
+              console.warn("Local signOut notice:", e);
+            });
+          }
+
+          setUser(null);
+          setIsAdmin(false);
+          setProfile(null);
+          return;
+        }
+
+        setUser((data?.user as SupabaseUser) || null);
+      })
+      .catch((err) => {
+        console.warn("Auth getUser exception handled:", err);
+        if (isMounted) {
+          setUser(null);
+          setIsAdmin(false);
+          setProfile(null);
+        }
+      });
 
     const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setUser((session?.user as SupabaseUser) || null);
+      (event, session) => {
+        if (!isMounted) return;
+
+        if (event === "SIGNED_OUT" || !session?.user) {
+          setUser(null);
+          setIsAdmin(false);
+          setProfile(null);
+        } else {
+          setUser((session.user as SupabaseUser) || null);
+        }
       }
     );
 
-    return () => listener.subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      listener.subscription.unsubscribe();
+    };
   }, []);
+
+  // Synchronize and load profile from public.profiles whenever user or route changes
+  useEffect(() => {
+    let isMounted = true;
+
+    if (!user) {
+      setProfile(null);
+      return;
+    }
+
+    syncUserProfile(user)
+      .then((p) => {
+        if (isMounted && p) {
+          setProfile(p);
+        }
+      })
+      .catch((err) => {
+        console.warn("Notice syncing profile:", err);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user, pathname]);
 
   // Check admin status from public.admins whenever user changes
   useEffect(() => {
@@ -94,6 +170,40 @@ function Nav() {
       isMounted = false;
     };
   }, [user]);
+
+  // Compute profile photo URL safely following strict priority:
+  // 1. Existing public.profiles.photo_url
+  // 2. Supabase/Google user metadata avatar_url
+  // 3. Supabase/Google user metadata picture
+  // 4. Other clearly available Google/Supabase avatar metadata (identities, etc.)
+  // 5. Existing User icon fallback
+  const oauthCandidate = getAvatarFromUser(user);
+  const profilePhotoUrl =
+    (profile?.photo_url && profile.photo_url.trim().length > 0
+      ? profile.photo_url.trim()
+      : null) ||
+    (typeof user?.user_metadata?.avatar_url === "string" &&
+    user.user_metadata.avatar_url.trim().length > 0
+      ? user.user_metadata.avatar_url.trim()
+      : null) ||
+    (typeof user?.user_metadata?.picture === "string" &&
+    user.user_metadata.picture.trim().length > 0
+      ? user.user_metadata.picture.trim()
+      : null) ||
+    oauthCandidate ||
+    null;
+
+  const hasValidPhoto = Boolean(
+    profilePhotoUrl &&
+      (profilePhotoUrl.startsWith("http://") ||
+        profilePhotoUrl.startsWith("https://") ||
+        profilePhotoUrl.startsWith("/"))
+  );
+
+  useEffect(() => {
+    setDesktopImgError(false);
+    setMobileImgError(false);
+  }, [profilePhotoUrl]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -133,6 +243,7 @@ function Nav() {
     } finally {
       setUser(null);
       setIsAdmin(false);
+      setProfile(null);
       setDropdownOpen(false);
       setmenu(false);
       router.push("/");
@@ -258,13 +369,14 @@ function Nav() {
               className="h-8 w-8 rounded-full bg-zinc-200 overflow-hidden border border-gray-300 hover:ring-2 hover:ring-sky-400 focus:outline-none transition-all flex items-center justify-center cursor-pointer"
               aria-label="User menu"
             >
-              {user.user_metadata?.avatar_url || user.user_metadata?.picture ? (
+              {hasValidPhoto && !desktopImgError ? (
                 <Image
-                  src={user.user_metadata?.avatar_url || user.user_metadata?.picture || ""}
-                  alt="userImage"
+                  src={profilePhotoUrl!}
+                  alt={profile?.name || user.email || "User"}
                   width={32}
                   height={32}
                   unoptimized
+                  onError={() => setDesktopImgError(true)}
                   className="object-cover w-full h-full"
                 />
               ) : (
@@ -396,13 +508,14 @@ function Nav() {
               className="h-8 w-8 rounded-full bg-zinc-200 overflow-hidden border border-gray-300 hover:ring-2 hover:ring-sky-400 focus:outline-none transition-all flex items-center justify-center cursor-pointer"
               aria-label="User menu"
             >
-              {user.user_metadata?.avatar_url || user.user_metadata?.picture ? (
+              {hasValidPhoto && !mobileImgError ? (
                 <Image
-                  src={user.user_metadata?.avatar_url || user.user_metadata?.picture || ""}
-                  alt="userImage"
+                  src={profilePhotoUrl!}
+                  alt={profile?.name || user.email || "User"}
                   width={32}
                   height={32}
                   unoptimized
+                  onError={() => setMobileImgError(true)}
                   className="object-cover w-full h-full"
                 />
               ) : (

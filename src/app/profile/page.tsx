@@ -8,6 +8,7 @@ import { Inter } from "next/font/google";
 import supabase from "@/config/supabase";
 import { User, Mail, Instagram, Image as ImageIcon, Save, ArrowLeft, CheckCircle2, AlertCircle, Loader2, History } from "lucide-react";
 import Footer from "@/app/components/reuseable/reusable-home/Footer";
+import { syncUserProfile, getAvatarFromUser, getNameFromUser } from "@/utils/profile";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -36,6 +37,9 @@ export default function ProfilePage() {
         const { data: authData, error: authError } = await supabase.auth.getUser();
 
         if (authError || !authData?.user) {
+          if (authError?.message?.toLowerCase().includes("refresh token")) {
+            await supabase.auth.signOut({ scope: "local" }).catch(() => {});
+          }
           if (isMounted) router.push("/auth/login");
           return;
         }
@@ -46,41 +50,21 @@ export default function ProfilePage() {
         setUser(currentUser);
         setEmail(currentUser.email || "");
 
-        // Fetch profile record from public.profiles
-        const { data: profileData, error: profileError } = await supabase
-          .from("profiles")
-          .select("name, photo_url, instagram")
-          .eq("user_id", currentUser.id)
-          .maybeSingle();
+        // Synchronize / fetch profile record from public.profiles
+        const profileData = await syncUserProfile(currentUser);
 
         if (!isMounted) return;
 
+        const oauthName = getNameFromUser(currentUser) || "";
+        const oauthPhoto = getAvatarFromUser(currentUser) || "";
+
         if (profileData) {
-          setName(
-            profileData.name ||
-              currentUser.user_metadata?.full_name ||
-              currentUser.user_metadata?.name ||
-              ""
-          );
-          setPhotoUrl(
-            profileData.photo_url ||
-              currentUser.user_metadata?.avatar_url ||
-              currentUser.user_metadata?.picture ||
-              ""
-          );
+          setName(profileData.name || oauthName);
+          setPhotoUrl(profileData.photo_url || oauthPhoto);
           setInstagram(profileData.instagram || "");
         } else {
-          // Initialize with user's OAuth metadata if profile row has not yet been fetched
-          setName(
-            currentUser.user_metadata?.full_name ||
-              currentUser.user_metadata?.name ||
-              ""
-          );
-          setPhotoUrl(
-            currentUser.user_metadata?.avatar_url ||
-              currentUser.user_metadata?.picture ||
-              ""
-          );
+          setName(oauthName);
+          setPhotoUrl(oauthPhoto);
           setInstagram("");
         }
       } catch (err) {

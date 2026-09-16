@@ -47,6 +47,9 @@ export default function SubmitShayariPage() {
       try {
         const { data, error: authError } = await supabase.auth.getUser();
         if (authError || !data?.user) {
+          if (authError?.message?.toLowerCase().includes("refresh token")) {
+            await supabase.auth.signOut({ scope: "local" }).catch(() => {});
+          }
           if (isMounted) router.push("/auth/login");
           return;
         }

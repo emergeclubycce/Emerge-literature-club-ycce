@@ -8,6 +8,8 @@ import { useLenis } from "@/utils/lenis";
 import Footer from "../components/reuseable/reusable-home/Footer";
 import supabase from "@/config/supabase";
 import { Feather, Loader2, Plus, Sparkles } from "lucide-react";
+import { fetchPostEngagement } from "@/utils/engagement";
+import { getAvatarFromUser } from "@/utils/profile";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -23,6 +25,8 @@ interface DisplaySher {
   authorPhoto: string | null;
   createdAt: string;
   idx: number;
+  likeCount: number;
+  bookmarkCount: number;
 }
 
 export default function ShersPage() {
@@ -41,7 +45,10 @@ export default function ShersPage() {
       setError(null);
 
       // Fetch current authenticated user
-      const { data: authData } = await supabase.auth.getUser();
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      if (authError && authError.message?.toLowerCase().includes("refresh token")) {
+        await supabase.auth.signOut({ scope: "local" }).catch(() => {});
+      }
       const loggedUser = authData?.user || null;
       setCurrentUser(loggedUser);
 
@@ -54,6 +61,9 @@ export default function ShersPage() {
 
       if (postsErr) throw postsErr;
 
+      // Extract post IDs for batch queries
+      const postIds = (postsData || []).map((p) => p.id);
+
       // Fetch corresponding author profiles
       const userIds = [
         ...new Set((postsData || []).map((p) => p.user_id).filter(Boolean)),
@@ -62,33 +72,39 @@ export default function ShersPage() {
       let profilesMap: Record<string, { name?: string; photo_url?: string }> =
         {};
 
-      if (userIds.length > 0) {
-        const { data: profilesData } = await supabase
-          .from("profiles")
-          .select("user_id, name, photo_url")
-          .in("user_id", userIds);
+      // Batch fetch author profiles and total engagement counts in parallel
+      const [profilesRes, engagementMap] = await Promise.all([
+        userIds.length > 0
+          ? supabase
+              .from("profiles")
+              .select("user_id, name, photo_url")
+              .in("user_id", userIds)
+          : Promise.resolve({ data: [] }),
+        fetchPostEngagement(postIds),
+      ]);
 
-        if (profilesData) {
-          profilesData.forEach((pr) => {
-            profilesMap[pr.user_id] = pr;
-          });
-        }
+      if (profilesRes.data) {
+        profilesRes.data.forEach((pr: any) => {
+          profilesMap[pr.user_id] = pr;
+        });
       }
 
-      // Batch fetch current user's likes & bookmarks
+      // Batch fetch current user's personal likes & bookmarks
       let userLikesSet = new Set<number>();
       let userBookmarksSet = new Set<number>();
 
-      if (loggedUser) {
+      if (loggedUser && postIds.length > 0) {
         const [likesRes, bookmarksRes] = await Promise.all([
           supabase
             .from("likes")
             .select("post_id")
-            .eq("user_id", loggedUser.id),
+            .eq("user_id", loggedUser.id)
+            .in("post_id", postIds),
           supabase
             .from("bookmarks")
             .select("post_id")
-            .eq("user_id", loggedUser.id),
+            .eq("user_id", loggedUser.id)
+            .in("post_id", postIds),
         ]);
 
         if (likesRes.data) {
@@ -107,14 +123,24 @@ export default function ShersPage() {
       setBookmarkedPostIds(userBookmarksSet);
 
       const formatted: DisplaySher[] = (postsData || []).map((p, ind) => {
-        // Author resolution priority:
-        // 1. posts.author_name, when it exists (e.g. legacy migrated posts)
-        // 2. corresponding profile name
+        // Author resolution architecture:
+        // 1. public.profiles.name via posts.user_id
+        // 2. legacy posts.author_name fallback
         // 3. fallback "Anonymous"
+        const authorProfile = p.user_id ? profilesMap[p.user_id] : null;
         const displayAuthor =
+          authorProfile?.name?.trim() ||
           p.author_name?.trim() ||
-          profilesMap[p.user_id]?.name ||
           "Anonymous";
+
+        const authorPhoto =
+          authorProfile?.photo_url?.trim() ||
+          (p.user_id && p.user_id === loggedUser?.id
+            ? getAvatarFromUser(loggedUser)
+            : null) ||
+          null;
+
+        const engagement = engagementMap[p.id] || { likes: 0, bookmarks: 0 };
 
         return {
           id: p.id,
@@ -122,9 +148,11 @@ export default function ShersPage() {
           caption: p.content,
           image: p.image_url,
           writter: displayAuthor,
-          authorPhoto: p.author_name ? null : profilesMap[p.user_id]?.photo_url || null,
+          authorPhoto: authorPhoto,
           createdAt: p.created_at,
           idx: ind,
+          likeCount: engagement.likes,
+          bookmarkCount: engagement.bookmarks,
         };
       });
 
@@ -225,6 +253,8 @@ export default function ShersPage() {
                     currentUserId={currentUser?.id ?? null}
                     initialLiked={typeof val.id === "number" ? likedPostIds.has(val.id) : false}
                     initialBookmarked={typeof val.id === "number" ? bookmarkedPostIds.has(val.id) : false}
+                    likeCount={val.likeCount}
+                    bookmarkCount={val.bookmarkCount}
                     onDelete={(deletedId) =>
                       setPosts((prev) => prev.filter((p) => p.id !== deletedId))
                     }

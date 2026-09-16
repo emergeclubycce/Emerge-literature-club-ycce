@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Inter } from "next/font/google";
 import { Bookmark, HeartIcon, Send, Check, Trash2, AlertTriangle, Loader2 } from "lucide-react";
 import supabase from "@/config/supabase";
+import { fetchPostEngagement } from "@/utils/engagement";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -23,6 +24,8 @@ interface SherProp {
   createdAt?: string | null;
   initialLiked?: boolean;
   initialBookmarked?: boolean;
+  likeCount?: number;
+  bookmarkCount?: number;
   currentUserId?: string | null;
   userId?: string | null;
   onDelete?: (id: number | string) => void;
@@ -39,6 +42,8 @@ function SherCard({
   createdAt,
   initialLiked,
   initialBookmarked,
+  likeCount = 0,
+  bookmarkCount = 0,
   currentUserId,
   userId,
   onDelete,
@@ -47,9 +52,20 @@ function SherCard({
 
   const [isLiked, setIsLiked] = useState<boolean>(!!initialLiked);
   const [isBookmarked, setIsBookmarked] = useState<boolean>(!!initialBookmarked);
+  const [likesCount, setLikesCount] = useState<number>(likeCount ?? 0);
+  const [bookmarksCount, setBookmarksCount] = useState<number>(bookmarkCount ?? 0);
   const [isProcessingLike, setIsProcessingLike] = useState<boolean>(false);
   const [isProcessingBookmark, setIsProcessingBookmark] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
+  const [authorPhotoError, setAuthorPhotoError] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (likeCount !== undefined) setLikesCount(likeCount);
+  }, [likeCount]);
+
+  useEffect(() => {
+    if (bookmarkCount !== undefined) setBookmarksCount(bookmarkCount);
+  }, [bookmarkCount]);
 
   // Delete modal state
   const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
@@ -66,11 +82,17 @@ function SherCard({
       setSessionUserId(currentUserId);
     } else {
       let isMounted = true;
-      supabase.auth.getUser().then(({ data }) => {
-        if (isMounted && data?.user) {
-          setSessionUserId(data.user.id);
-        }
-      });
+      supabase.auth
+        .getUser()
+        .then(({ data, error }) => {
+          if (error && error.message?.toLowerCase().includes("refresh token")) {
+            supabase.auth.signOut({ scope: "local" }).catch(() => {});
+          }
+          if (isMounted && data?.user) {
+            setSessionUserId(data.user.id);
+          }
+        })
+        .catch(() => {});
       return () => {
         isMounted = false;
       };
@@ -109,40 +131,67 @@ function SherCard({
     let isMounted = true;
 
     if (initialLiked === undefined || initialBookmarked === undefined) {
-      supabase.auth.getUser().then(({ data }) => {
-        if (!isMounted || !data?.user) return;
-        const uid = data.user.id;
+      supabase.auth
+        .getUser()
+        .then(({ data, error }) => {
+          if (error && error.message?.toLowerCase().includes("refresh token")) {
+            supabase.auth.signOut({ scope: "local" }).catch(() => {});
+          }
+          if (!isMounted || !data?.user) return;
+          const uid = data.user.id;
 
-        if (initialLiked === undefined) {
-          supabase
-            .from("likes")
-            .select("post_id")
-            .eq("user_id", uid)
-            .eq("post_id", numericPostId)
-            .maybeSingle()
-            .then(({ data: lData }) => {
-              if (isMounted && lData) setIsLiked(true);
-            });
-        }
+          if (initialLiked === undefined) {
+            supabase
+              .from("likes")
+              .select("post_id")
+              .eq("user_id", uid)
+              .eq("post_id", numericPostId)
+              .maybeSingle()
+              .then(({ data: lData }) => {
+                if (isMounted && lData) setIsLiked(true);
+              });
+          }
 
-        if (initialBookmarked === undefined) {
-          supabase
-            .from("bookmarks")
-            .select("post_id")
-            .eq("user_id", uid)
-            .eq("post_id", numericPostId)
-            .maybeSingle()
-            .then(({ data: bData }) => {
-              if (isMounted && bData) setIsBookmarked(true);
-            });
-        }
-      });
+          if (initialBookmarked === undefined) {
+            supabase
+              .from("bookmarks")
+              .select("post_id")
+              .eq("user_id", uid)
+              .eq("post_id", numericPostId)
+              .maybeSingle()
+              .then(({ data: bData }) => {
+                if (isMounted && bData) setIsBookmarked(true);
+              });
+          }
+        })
+        .catch(() => {});
     }
 
     return () => {
       isMounted = false;
     };
   }, [id, initialLiked, initialBookmarked]);
+
+  // Fetch engagement counts if not passed via props (e.g. standalone Share page)
+  useEffect(() => {
+    const numericPostId =
+      typeof id === "number"
+        ? id
+        : typeof id === "string" && !isNaN(Number(id))
+        ? Number(id)
+        : null;
+
+    if (!numericPostId) return;
+
+    if (likeCount === undefined || bookmarkCount === undefined) {
+      fetchPostEngagement([numericPostId]).then((countsMap) => {
+        if (countsMap[numericPostId]) {
+          if (likeCount === undefined) setLikesCount(countsMap[numericPostId].likes);
+          if (bookmarkCount === undefined) setBookmarksCount(countsMap[numericPostId].bookmarks);
+        }
+      });
+    }
+  }, [id, likeCount, bookmarkCount]);
 
   // Handle Like Toggle
   const handleToggleLike = async () => {
@@ -159,7 +208,10 @@ function SherCard({
     if (isProcessingLike) return;
 
     // Check authenticated user
-    const { data: authData } = await supabase.auth.getUser();
+    const { data: authData, error: authErr } = await supabase.auth.getUser();
+    if (authErr && authErr.message?.toLowerCase().includes("refresh token")) {
+      await supabase.auth.signOut({ scope: "local" }).catch(() => {});
+    }
     const user = authData?.user;
 
     if (!user) {
@@ -169,6 +221,7 @@ function SherCard({
 
     const nextLiked = !isLiked;
     setIsLiked(nextLiked); // Optimistic update
+    setLikesCount((prev) => (nextLiked ? prev + 1 : Math.max(0, prev - 1)));
     setIsProcessingLike(true);
 
     try {
@@ -189,6 +242,7 @@ function SherCard({
     } catch (err) {
       console.error("Failed to update like status:", err);
       setIsLiked(!nextLiked); // Revert on failure
+      setLikesCount((prev) => (!nextLiked ? prev + 1 : Math.max(0, prev - 1)));
     } finally {
       setIsProcessingLike(false);
     }
@@ -209,7 +263,10 @@ function SherCard({
     if (isProcessingBookmark) return;
 
     // Check authenticated user
-    const { data: authData } = await supabase.auth.getUser();
+    const { data: authData, error: authErr } = await supabase.auth.getUser();
+    if (authErr && authErr.message?.toLowerCase().includes("refresh token")) {
+      await supabase.auth.signOut({ scope: "local" }).catch(() => {});
+    }
     const user = authData?.user;
 
     if (!user) {
@@ -219,6 +276,7 @@ function SherCard({
 
     const nextBookmarked = !isBookmarked;
     setIsBookmarked(nextBookmarked); // Optimistic update
+    setBookmarksCount((prev) => (nextBookmarked ? prev + 1 : Math.max(0, prev - 1)));
     setIsProcessingBookmark(true);
 
     try {
@@ -239,6 +297,7 @@ function SherCard({
     } catch (err) {
       console.error("Failed to update bookmark status:", err);
       setIsBookmarked(!nextBookmarked); // Revert on failure
+      setBookmarksCount((prev) => (!nextBookmarked ? prev + 1 : Math.max(0, prev - 1)));
     } finally {
       setIsProcessingBookmark(false);
     }
@@ -328,13 +387,14 @@ function SherCard({
       <div className="h-15 w-full p-2 flex items-center justify-between px-3">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-full overflow-hidden border border-gray-300 bg-gray-50 flex items-center justify-center flex-shrink-0">
-            {authorPhoto ? (
+            {authorPhoto && !authorPhotoError ? (
               <Image
                 src={authorPhoto}
                 alt={authorName}
                 width={40}
                 height={40}
                 unoptimized
+                onError={() => setAuthorPhotoError(true)}
                 className="w-full h-full object-cover"
               />
             ) : (
@@ -444,23 +504,28 @@ function SherCard({
       <div className="h-auto w-full px-2 pb-2">
         <div className="w-full h-10 py-2 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {/* Like Button */}
-            <button
-              type="button"
-              onClick={handleToggleLike}
-              disabled={isProcessingLike}
-              aria-label={isLiked ? "Unlike Shayari" : "Like Shayari"}
-              className="cursor-pointer transition-transform active:scale-125 focus:outline-none disabled:opacity-70 flex items-center justify-center"
-              title={isLiked ? "Unlike" : "Like"}
-            >
-              <HeartIcon
-                className={`w-5 h-5 transition-colors ${
-                  isLiked
-                    ? "fill-rose-500 text-rose-500"
-                    : "text-zinc-600 hover:text-rose-400"
-                }`}
-              />
-            </button>
+            {/* Like Button & Count */}
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={handleToggleLike}
+                disabled={isProcessingLike}
+                aria-label={isLiked ? "Unlike Shayari" : "Like Shayari"}
+                className="cursor-pointer transition-transform active:scale-125 focus:outline-none disabled:opacity-70 flex items-center justify-center"
+                title={isLiked ? "Unlike" : "Like"}
+              >
+                <HeartIcon
+                  className={`w-5 h-5 transition-colors ${
+                    isLiked
+                      ? "fill-rose-500 text-rose-500"
+                      : "text-zinc-600 hover:text-rose-400"
+                  }`}
+                />
+              </button>
+              <span className="text-xs font-medium text-zinc-600 select-none">
+                {likesCount}
+              </span>
+            </div>
 
             {/* Share Button */}
             <button
@@ -482,23 +547,28 @@ function SherCard({
             )}
           </div>
 
-          {/* Bookmark Button */}
-          <button
-            type="button"
-            onClick={handleToggleBookmark}
-            disabled={isProcessingBookmark}
-            aria-label={isBookmarked ? "Remove bookmark" : "Bookmark Shayari"}
-            className="cursor-pointer transition-transform active:scale-125 focus:outline-none disabled:opacity-70 flex items-center justify-center"
-            title={isBookmarked ? "Remove bookmark" : "Bookmark"}
-          >
-            <Bookmark
-              className={`w-5 h-5 transition-colors ${
-                isBookmarked
-                  ? "fill-sky-500 text-sky-500"
-                  : "text-zinc-600 hover:text-sky-400"
-              }`}
-            />
-          </button>
+          {/* Bookmark Button & Count */}
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={handleToggleBookmark}
+              disabled={isProcessingBookmark}
+              aria-label={isBookmarked ? "Remove bookmark" : "Bookmark Shayari"}
+              className="cursor-pointer transition-transform active:scale-125 focus:outline-none disabled:opacity-70 flex items-center justify-center"
+              title={isBookmarked ? "Remove bookmark" : "Bookmark"}
+            >
+              <Bookmark
+                className={`w-5 h-5 transition-colors ${
+                  isBookmarked
+                    ? "fill-sky-500 text-sky-500"
+                    : "text-zinc-600 hover:text-sky-400"
+                }`}
+              />
+            </button>
+            <span className="text-xs font-medium text-zinc-600 select-none">
+              {bookmarksCount}
+            </span>
+          </div>
         </div>
 
         <div className="flex items-center justify-between gap-2 mt-1">

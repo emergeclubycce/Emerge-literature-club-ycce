@@ -30,6 +30,7 @@ import {
   Trophy,
 } from "lucide-react";
 import Footer from "@/app/components/reuseable/reusable-home/Footer";
+import { getAvatarFromUser } from "@/utils/profile";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -112,6 +113,17 @@ export default function AdminDashboardPage() {
     "pending"
   );
   const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+
+  // Close lightbox on Escape key
+  useEffect(() => {
+    if (!lightboxImage) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setLightboxImage(null);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [lightboxImage]);
 
   // ----------------- 2. EVENTS STATE ------------------
   const [adminEvents, setAdminEvents] = useState<AdminEvent[]>([]);
@@ -181,6 +193,9 @@ export default function AdminDashboardPage() {
           await supabase.auth.getUser();
 
         if (authError || !authData?.user) {
+          if (authError?.message?.toLowerCase().includes("refresh token")) {
+            await supabase.auth.signOut({ scope: "local" }).catch(() => {});
+          }
           if (isMounted) router.push("/auth/login");
           return;
         }
@@ -265,10 +280,22 @@ export default function AdminDashboardPage() {
 
         if (isMounted) {
           const formatted: PostItem[] = (postsData || []).map((p) => {
+            // Author resolution architecture:
+            // 1. public.profiles.name via posts.user_id
+            // 2. legacy posts.author_name fallback
+            // 3. fallback "Anonymous"
+            const authorProfile = p.user_id ? profilesMap[p.user_id] : null;
             const displayAuthor =
+              authorProfile?.name?.trim() ||
               p.author_name?.trim() ||
-              profilesMap[p.user_id]?.name ||
               "Anonymous";
+
+            const authorPhoto =
+              authorProfile?.photo_url?.trim() ||
+              (p.user_id && p.user_id === user?.id
+                ? getAvatarFromUser(user)
+                : null) ||
+              null;
 
             return {
               id: p.id,
@@ -279,7 +306,7 @@ export default function AdminDashboardPage() {
               created_at: p.created_at,
               updated_at: p.updated_at,
               authorName: displayAuthor,
-              authorPhoto: p.author_name ? null : profilesMap[p.user_id]?.photo_url || null,
+              authorPhoto: authorPhoto,
             };
           });
 
@@ -1269,21 +1296,23 @@ export default function AdminDashboardPage() {
                   return (
                     <div
                       key={post.id}
-                      className="p-5 bg-white border border-gray-200 rounded-2xl shadow-xs flex flex-col md:flex-row gap-5 items-start justify-between"
+                      className="p-5 bg-white border border-gray-200 rounded-2xl shadow-xs flex flex-col gap-4"
                     >
-                      <div className="flex-1 space-y-3">
+                      {/* 1. Author information */}
+                      <div className="flex items-center justify-between border-b border-gray-100 pb-3">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full overflow-hidden bg-gray-100 border border-gray-200 flex items-center justify-center flex-shrink-0">
+                          <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 border border-gray-200 flex items-center justify-center flex-shrink-0">
                             {post.authorPhoto ? (
                               <Image
                                 src={post.authorPhoto}
                                 alt={post.authorName}
-                                width={36}
-                                height={36}
+                                width={40}
+                                height={40}
+                                unoptimized
                                 className="w-full h-full object-cover"
                               />
                             ) : (
-                              <User className="w-4 h-4 text-gray-400" />
+                              <User className="w-5 h-5 text-gray-400" />
                             )}
                           </div>
                           <div>
@@ -1299,31 +1328,61 @@ export default function AdminDashboardPage() {
                           </div>
                         </div>
 
-                        <p className="text-sm text-zinc-600 whitespace-pre-line leading-relaxed pl-1">
-                          {post.content}
-                        </p>
+                        {/* Current Status Badge */}
+                        <span
+                          className={`px-2.5 py-1 text-xs font-semibold rounded-full capitalize ${
+                            post.status === "approved"
+                              ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                              : post.status === "rejected"
+                              ? "bg-red-50 text-red-700 border border-red-200"
+                              : "bg-amber-50 text-amber-700 border border-amber-200"
+                          }`}
+                        >
+                          {post.status}
+                        </span>
                       </div>
 
-                      <div className="flex flex-col sm:flex-row md:flex-col items-end gap-3 w-full md:w-auto">
-                        {post.image_url && (
-                          <div className="w-32 h-24 rounded-xl overflow-hidden bg-gray-50 border border-gray-200 flex-shrink-0 relative">
+                      {/* 2. Post Text */}
+                      <p className="text-sm text-zinc-700 whitespace-pre-line leading-relaxed pl-1">
+                        {post.content}
+                      </p>
+
+                      {/* 3. Post Image (Clickable Lightbox Thumbnail) */}
+                      {post.image_url && (
+                        <div className="w-fit">
+                          <div
+                            onClick={() => setLightboxImage(post.image_url)}
+                            className="group relative w-44 h-32 rounded-xl overflow-hidden bg-gray-100 border border-gray-200 cursor-pointer shadow-xs hover:ring-2 hover:ring-sky-400 transition-all flex items-center justify-center"
+                            title="Click to view full image"
+                          >
                             <Image
                               src={post.image_url}
-                              alt="Post attachment"
+                              alt="Shayari artwork thumbnail"
                               fill
-                              unoptimized={post.image_url.startsWith("http")}
-                              className="object-cover"
+                              unoptimized
+                              className="object-cover group-hover:scale-105 transition-transform duration-300"
                             />
+                            <div className="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 text-white text-xs font-medium backdrop-blur-2xs">
+                              <ExternalLink className="w-4 h-4" />
+                              <span>Enlarge Artwork</span>
+                            </div>
                           </div>
-                        )}
+                          <p className="text-[11px] text-gray-400 mt-1">
+                            Click image to enlarge
+                          </p>
+                        </div>
+                      )}
 
-                        {post.status === "pending" && (
-                          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                      {/* 4. Approve / Reject Controls (Below the Post Image) */}
+                      <div className="pt-3 border-t border-gray-100 flex items-center gap-3">
+                        {/* Tab: Pending Review */}
+                        {activeTab === "pending" && (
+                          <>
                             <button
                               type="button"
                               disabled={isActing}
                               onClick={() => handleReject(post.id)}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 text-xs font-semibold rounded-xl border border-red-200 transition-colors disabled:opacity-50 cursor-pointer"
+                              className="inline-flex items-center gap-1.5 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-700 text-xs font-semibold rounded-xl border border-red-200 transition-colors disabled:opacity-50 cursor-pointer"
                             >
                               {isActing ? (
                                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -1337,7 +1396,7 @@ export default function AdminDashboardPage() {
                               type="button"
                               disabled={isActing}
                               onClick={() => handleApprove(post.id)}
-                              className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
+                              className="inline-flex items-center gap-1.5 px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
                             >
                               {isActing ? (
                                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -1346,31 +1405,63 @@ export default function AdminDashboardPage() {
                               )}
                               <span>Approve</span>
                             </button>
-                          </div>
+                          </>
                         )}
 
-                        {post.status !== "pending" && (
-                          <div className="flex items-center gap-2">
-                            {post.status === "rejected" ? (
-                              <button
-                                type="button"
-                                disabled={isActing}
-                                onClick={() => handleApprove(post.id)}
-                                className="text-xs font-semibold text-emerald-600 hover:underline cursor-pointer"
-                              >
-                                Re-Approve
-                              </button>
-                            ) : (
-                              <button
-                                type="button"
-                                disabled={isActing}
-                                onClick={() => handleReject(post.id)}
-                                className="text-xs font-semibold text-red-600 hover:underline cursor-pointer"
-                              >
-                                Revoke / Reject
-                              </button>
-                            )}
-                          </div>
+                        {/* Tab: Approved */}
+                        {activeTab === "approved" && (
+                          <>
+                            <button
+                              type="button"
+                              disabled
+                              className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-50 text-emerald-800 text-xs font-semibold rounded-xl border border-emerald-300 opacity-80 cursor-default select-none"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                              <span>Approved (Current)</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              disabled={isActing}
+                              onClick={() => handleReject(post.id)}
+                              className="inline-flex items-center gap-1.5 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-700 text-xs font-semibold rounded-xl border border-red-200 transition-colors disabled:opacity-50 cursor-pointer"
+                            >
+                              {isActing ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <X className="w-3.5 h-3.5" />
+                              )}
+                              <span>Reject</span>
+                            </button>
+                          </>
+                        )}
+
+                        {/* Tab: Rejected */}
+                        {activeTab === "rejected" && (
+                          <>
+                            <button
+                              type="button"
+                              disabled={isActing}
+                              onClick={() => handleApprove(post.id)}
+                              className="inline-flex items-center gap-1.5 px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
+                            >
+                              {isActing ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <Check className="w-3.5 h-3.5" />
+                              )}
+                              <span>Approve</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              disabled
+                              className="inline-flex items-center gap-1.5 px-4 py-2 bg-red-50 text-red-800 text-xs font-semibold rounded-xl border border-red-300 opacity-80 cursor-default select-none"
+                            >
+                              <XCircle className="w-3.5 h-3.5 text-red-600" />
+                              <span>Rejected (Current)</span>
+                            </button>
+                          </>
                         )}
                       </div>
                     </div>
@@ -2308,6 +2399,33 @@ export default function AdminDashboardPage() {
                   )}
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* ================= LIGHTBOX MODAL ================= */}
+        {lightboxImage && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 animate-in fade-in duration-200"
+            onClick={() => setLightboxImage(null)}
+          >
+            <div
+              className="relative max-w-4xl max-h-[90vh] w-full flex flex-col items-center justify-center"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                type="button"
+                onClick={() => setLightboxImage(null)}
+                className="absolute -top-12 right-0 p-2 text-white/80 hover:text-white bg-black/50 hover:bg-black/70 rounded-full transition-colors cursor-pointer"
+                aria-label="Close image preview"
+              >
+                <X className="w-6 h-6" />
+              </button>
+              <img
+                src={lightboxImage}
+                alt="Enlarged Shayari Artwork"
+                className="max-h-[85vh] max-w-full w-auto object-contain rounded-xl shadow-2xl"
+              />
             </div>
           </div>
         )}

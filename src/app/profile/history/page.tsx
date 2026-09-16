@@ -19,6 +19,9 @@ import {
   Layers,
 } from "lucide-react";
 
+import { fetchPostEngagement } from "@/utils/engagement";
+import { getAvatarFromUser } from "@/utils/profile";
+
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
@@ -33,6 +36,8 @@ interface HistorySher {
   authorPhoto: string | null;
   createdAt: string;
   idx: number;
+  likeCount: number;
+  bookmarkCount: number;
 }
 
 export default function ProfileHistoryPage() {
@@ -59,6 +64,9 @@ export default function ProfileHistoryPage() {
         const { data: authData, error: authError } = await supabase.auth.getUser();
 
         if (authError || !authData?.user) {
+          if (authError?.message?.toLowerCase().includes("refresh token")) {
+            await supabase.auth.signOut({ scope: "local" }).catch(() => {});
+          }
           if (isMounted) router.push("/auth/login");
           return;
         }
@@ -68,7 +76,7 @@ export default function ProfileHistoryPage() {
           setAuthChecking(false);
         }
       } catch (err) {
-        console.error("Auth check failed:", err);
+        console.warn("Auth check error:", err);
         if (isMounted) router.push("/auth/login");
       }
     }
@@ -141,35 +149,50 @@ export default function ProfileHistoryPage() {
 
       if (postsErr) throw postsErr;
 
-      // Fetch author profiles for regular user posts
+      const postIds = (postsData || []).map((p) => p.id);
+
+      // Fetch author profiles and engagement counts in parallel
       const userIds = [
         ...new Set((postsData || []).map((p) => p.user_id).filter(Boolean)),
       ];
 
       let profilesMap: Record<string, { name?: string; photo_url?: string }> = {};
 
-      if (userIds.length > 0) {
-        const { data: profilesData } = await supabase
-          .from("profiles")
-          .select("user_id, name, photo_url")
-          .in("user_id", userIds);
+      const [profilesRes, engagementMap] = await Promise.all([
+        userIds.length > 0
+          ? supabase
+              .from("profiles")
+              .select("user_id, name, photo_url")
+              .in("user_id", userIds)
+          : Promise.resolve({ data: [] }),
+        fetchPostEngagement(postIds),
+      ]);
 
-        if (profilesData) {
-          profilesData.forEach((pr) => {
-            profilesMap[pr.user_id] = pr;
-          });
-        }
+      if (profilesRes.data) {
+        profilesRes.data.forEach((pr: any) => {
+          profilesMap[pr.user_id] = pr;
+        });
       }
 
       const formatted: HistorySher[] = (postsData || []).map((p, ind) => {
-        // Author resolution priority:
-        // 1. posts.author_name, when it exists (e.g. legacy migrated posts)
-        // 2. corresponding profile name
+        // Author resolution architecture:
+        // 1. public.profiles.name via posts.user_id
+        // 2. legacy posts.author_name fallback
         // 3. fallback "Anonymous"
+        const authorProfile = p.user_id ? profilesMap[p.user_id] : null;
         const displayAuthor =
+          authorProfile?.name?.trim() ||
           p.author_name?.trim() ||
-          profilesMap[p.user_id]?.name ||
           "Anonymous";
+
+        const authorPhoto =
+          authorProfile?.photo_url?.trim() ||
+          (p.user_id && p.user_id === currentUser?.id
+            ? getAvatarFromUser(currentUser)
+            : null) ||
+          null;
+
+        const engagement = engagementMap[p.id] || { likes: 0, bookmarks: 0 };
 
         return {
           id: p.id,
@@ -177,9 +200,11 @@ export default function ProfileHistoryPage() {
           caption: p.content,
           image: p.image_url,
           writter: displayAuthor,
-          authorPhoto: p.author_name ? null : profilesMap[p.user_id]?.photo_url || null,
+          authorPhoto: authorPhoto,
           createdAt: p.created_at,
           idx: ind,
+          likeCount: engagement.likes,
+          bookmarkCount: engagement.bookmarks,
         };
       });
 
@@ -344,6 +369,8 @@ export default function ProfileHistoryPage() {
                     currentUserId={currentUser?.id ?? null}
                     initialLiked={likedPostIds.has(val.id)}
                     initialBookmarked={bookmarkedPostIds.has(val.id)}
+                    likeCount={val.likeCount}
+                    bookmarkCount={val.bookmarkCount}
                     onDelete={(deletedId) =>
                       setPosts((prev) => prev.filter((p) => p.id !== deletedId))
                     }

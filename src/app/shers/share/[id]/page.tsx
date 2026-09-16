@@ -6,6 +6,7 @@ import { Inter } from "next/font/google";
 import Footer from "@/app/components/reuseable/reusable-home/Footer";
 import supabase from "@/config/supabase";
 import { ArrowLeft, AlertCircle } from "lucide-react";
+import { fetchPostEngagement } from "@/utils/engagement";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -60,14 +61,24 @@ export async function generateMetadata({
     };
   }
 
-  let authorName = post.author_name?.trim() || "Anonymous";
-  if (!post.author_name && post.user_id) {
+  // Author resolution architecture:
+  // 1. public.profiles.name via post.user_id
+  // 2. legacy post.author_name fallback
+  // 3. fallback "Anonymous"
+  let authorName = "Anonymous";
+  if (post.user_id) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("name")
       .eq("user_id", post.user_id)
       .maybeSingle();
-    if (profile?.name) authorName = profile.name;
+    if (profile?.name?.trim()) {
+      authorName = profile.name.trim();
+    }
+  }
+
+  if (authorName === "Anonymous" && post.author_name?.trim()) {
+    authorName = post.author_name.trim();
   }
 
   const descriptionSnippet = post.content
@@ -129,14 +140,14 @@ export default async function SharePage({
     return renderNotFound();
   }
 
-  // Author resolution priority:
-  // 1. post.author_name (legacy migrated posts)
-  // 2. profiles.name
+  // Author resolution architecture:
+  // 1. public.profiles.name via post.user_id
+  // 2. legacy post.author_name fallback
   // 3. fallback "Anonymous"
-  let authorName = post.author_name?.trim() || "Anonymous";
+  let authorName = "Anonymous";
   let authorPhoto: string | null = null;
 
-  if (!post.author_name && post.user_id) {
+  if (post.user_id) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("name, photo_url")
@@ -144,8 +155,23 @@ export default async function SharePage({
       .maybeSingle();
 
     if (profile) {
-      authorName = profile.name || "Anonymous";
+      if (profile.name?.trim()) authorName = profile.name.trim();
       authorPhoto = profile.photo_url || null;
+    }
+  }
+
+  if (authorName === "Anonymous" && post.author_name?.trim()) {
+    authorName = post.author_name.trim();
+  }
+
+  // Pre-fetch engagement counts for server rendering
+  let initialLikes = 0;
+  let initialBookmarks = 0;
+  if (post.id) {
+    const engagementMap = await fetchPostEngagement([post.id]);
+    if (engagementMap[post.id]) {
+      initialLikes = engagementMap[post.id].likes;
+      initialBookmarks = engagementMap[post.id].bookmarks;
     }
   }
 
@@ -176,6 +202,8 @@ export default async function SharePage({
           caption={post.content}
           createdAt={post.created_at}
           userId={post.user_id}
+          likeCount={initialLikes}
+          bookmarkCount={initialBookmarks}
         />
       </main>
 
