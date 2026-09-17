@@ -251,7 +251,7 @@ export default function AdminDashboardPage() {
 
         const { data: postsData, error: postsError } = await supabase
           .from("posts")
-          .select("id, user_id, author_name, content, image_url, status, created_at, updated_at")
+          .select("id, user_id, content, image_url, status, created_at, updated_at")
           .eq("status", activeTab)
           .order("created_at", { ascending: activeTab === "pending" });
 
@@ -282,13 +282,9 @@ export default function AdminDashboardPage() {
           const formatted: PostItem[] = (postsData || []).map((p) => {
             // Author resolution architecture:
             // 1. public.profiles.name via posts.user_id
-            // 2. legacy posts.author_name fallback
-            // 3. fallback "Anonymous"
+            // 2. fallback "Anonymous"
             const authorProfile = p.user_id ? profilesMap[p.user_id] : null;
-            const displayAuthor =
-              authorProfile?.name?.trim() ||
-              p.author_name?.trim() ||
-              "Anonymous";
+            const displayAuthor = authorProfile?.name?.trim() || "Anonymous";
 
             const authorPhoto =
               authorProfile?.photo_url?.trim() ||

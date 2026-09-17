@@ -55,7 +55,7 @@ export default function ShersPage() {
       // Fetch only approved posts ordered by newest first
       const { data: postsData, error: postsErr } = await supabase
         .from("posts")
-        .select("id, user_id, author_name, content, image_url, created_at, status")
+        .select("id, user_id, content, image_url, created_at, status")
         .eq("status", "approved")
         .order("created_at", { ascending: false });
 
@@ -125,13 +125,9 @@ export default function ShersPage() {
       const formatted: DisplaySher[] = (postsData || []).map((p, ind) => {
         // Author resolution architecture:
         // 1. public.profiles.name via posts.user_id
-        // 2. legacy posts.author_name fallback
-        // 3. fallback "Anonymous"
+        // 2. fallback "Anonymous"
         const authorProfile = p.user_id ? profilesMap[p.user_id] : null;
-        const displayAuthor =
-          authorProfile?.name?.trim() ||
-          p.author_name?.trim() ||
-          "Anonymous";
+        const displayAuthor = authorProfile?.name?.trim() || "Anonymous";
 
         const authorPhoto =
           authorProfile?.photo_url?.trim() ||

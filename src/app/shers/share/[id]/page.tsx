@@ -39,7 +39,7 @@ export async function generateMetadata({
     if (targetImage) {
       const { data } = await supabase
         .from("posts")
-        .select("id, user_id, author_name, content, image_url, status")
+        .select("id, user_id, content, image_url, status")
         .eq("image_url", targetImage)
         .eq("status", "approved")
         .maybeSingle();
@@ -48,7 +48,7 @@ export async function generateMetadata({
   } else {
     const { data } = await supabase
       .from("posts")
-      .select("id, user_id, author_name, content, image_url, status")
+      .select("id, user_id, content, image_url, status")
       .eq("id", numericId)
       .eq("status", "approved")
       .maybeSingle();
@@ -63,8 +63,7 @@ export async function generateMetadata({
 
   // Author resolution architecture:
   // 1. public.profiles.name via post.user_id
-  // 2. legacy post.author_name fallback
-  // 3. fallback "Anonymous"
+  // 2. fallback "Anonymous"
   let authorName = "Anonymous";
   if (post.user_id) {
     const { data: profile } = await supabase
@@ -75,10 +74,6 @@ export async function generateMetadata({
     if (profile?.name?.trim()) {
       authorName = profile.name.trim();
     }
-  }
-
-  if (authorName === "Anonymous" && post.author_name?.trim()) {
-    authorName = post.author_name.trim();
   }
 
   const descriptionSnippet = post.content
@@ -120,7 +115,7 @@ export default async function SharePage({
     if (targetImage) {
       const { data } = await supabase
         .from("posts")
-        .select("id, user_id, author_name, content, image_url, created_at, status")
+        .select("id, user_id, content, image_url, created_at, status")
         .eq("image_url", targetImage)
         .eq("status", "approved")
         .maybeSingle();
@@ -129,7 +124,7 @@ export default async function SharePage({
   } else {
     const { data } = await supabase
       .from("posts")
-      .select("id, user_id, author_name, content, image_url, created_at, status")
+      .select("id, user_id, content, image_url, created_at, status")
       .eq("id", numericId)
       .eq("status", "approved")
       .maybeSingle();
@@ -142,8 +137,7 @@ export default async function SharePage({
 
   // Author resolution architecture:
   // 1. public.profiles.name via post.user_id
-  // 2. legacy post.author_name fallback
-  // 3. fallback "Anonymous"
+  // 2. fallback "Anonymous"
   let authorName = "Anonymous";
   let authorPhoto: string | null = null;
 
@@ -158,10 +152,6 @@ export default async function SharePage({
       if (profile.name?.trim()) authorName = profile.name.trim();
       authorPhoto = profile.photo_url || null;
     }
-  }
-
-  if (authorName === "Anonymous" && post.author_name?.trim()) {
-    authorName = post.author_name.trim();
   }
 
   // Pre-fetch engagement counts for server rendering
