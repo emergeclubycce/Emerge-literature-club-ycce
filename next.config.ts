@@ -1,18 +1,22 @@
-// next.config.js
-/** @type {import('next').NextConfig} */
-const nextConfig = {
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
   images: {
-    domains: ['i.pinimg.com'],
-     remotePatterns: [
+    domains: ["i.pinimg.com"],
+    remotePatterns: [
       {
         protocol: "https",
         hostname: "lh3.googleusercontent.com",
       },
+      {
+        protocol: "https",
+        hostname: "*.googleusercontent.com",
+      },
     ],
   },
   eslint: {
- ignoreDuringBuilds: true,
-},
+    ignoreDuringBuilds: true,
+  },
 };
 
-module.exports = nextConfig;
+export default nextConfig;

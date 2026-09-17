@@ -7,6 +7,7 @@ import { Inter } from "next/font/google";
 import { Bookmark, HeartIcon, Send, Check, Trash2, AlertTriangle, Loader2 } from "lucide-react";
 import supabase from "@/config/supabase";
 import { fetchPostEngagement } from "@/utils/engagement";
+import { deleteShayariPost } from "@/utils/posts";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -29,6 +30,7 @@ interface SherProp {
   currentUserId?: string | null;
   userId?: string | null;
   onDelete?: (id: number | string) => void;
+  status?: "pending" | "approved" | "rejected";
 }
 
 function SherCard({
@@ -47,6 +49,7 @@ function SherCard({
   currentUserId,
   userId,
   onDelete,
+  status,
 }: SherProp) {
   const router = useRouter();
 
@@ -58,6 +61,10 @@ function SherCard({
   const [isProcessingBookmark, setIsProcessingBookmark] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
   const [authorPhotoError, setAuthorPhotoError] = useState<boolean>(false);
+
+  useEffect(() => {
+    setAuthorPhotoError(false);
+  }, [authorPhoto]);
 
   useEffect(() => {
     if (likeCount !== undefined) setLikesCount(likeCount);
@@ -350,14 +357,10 @@ function SherCard({
       setIsDeleting(true);
       setDeleteError(null);
 
-      // Enforce user_id match in both query and RLS policy
-      const { error } = await supabase
-        .from("posts")
-        .delete()
-        .eq("id", numericPostId)
-        .eq("user_id", targetUserId);
-
-      if (error) throw error;
+      const result = await deleteShayariPost(numericPostId, targetUserId);
+      if (!result.success) {
+        throw new Error(result.error || "Failed to delete post.");
+      }
 
       setShowDeleteModal(false);
       if (onDelete) {
@@ -394,6 +397,7 @@ function SherCard({
                 width={40}
                 height={40}
                 unoptimized
+                referrerPolicy="no-referrer"
                 onError={() => setAuthorPhotoError(true)}
                 className="w-full h-full object-cover"
               />
@@ -413,6 +417,29 @@ function SherCard({
 
         {/* Right header controls */}
         <div className="flex items-center gap-2">
+          {status && (
+            <span
+              className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-semibold rounded-full capitalize ${
+                status === "approved"
+                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                  : status === "rejected"
+                  ? "bg-red-50 text-red-700 border border-red-200"
+                  : "bg-amber-50 text-amber-700 border border-amber-200"
+              }`}
+            >
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  status === "approved"
+                    ? "bg-emerald-500"
+                    : status === "rejected"
+                    ? "bg-red-500"
+                    : "bg-amber-500 animate-pulse"
+                }`}
+              />
+              <span className="capitalize">{status}</span>
+            </span>
+          )}
+
           {isOwner && (
             <button
               type="button"
@@ -502,74 +529,96 @@ function SherCard({
 
       {/* Footer */}
       <div className="h-auto w-full px-2 pb-2">
-        <div className="w-full h-10 py-2 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {/* Like Button & Count */}
+        {status && status !== "approved" ? (
+          <div className="w-full py-2.5 px-1 flex items-center justify-between text-xs text-gray-500 border-b border-gray-100 mb-1">
+            <span className="flex items-center gap-1.5 font-medium">
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  status === "pending"
+                    ? "bg-amber-400 animate-pulse"
+                    : "bg-red-400"
+                }`}
+              />
+              <span className="text-zinc-700">
+                {status === "pending"
+                  ? "Awaiting Admin Review"
+                  : "Submission Rejected"}
+              </span>
+            </span>
+            <span className="text-[11px] text-gray-400">
+              {status === "pending" ? "Pending moderation" : "Not published"}
+            </span>
+          </div>
+        ) : (
+          <div className="w-full h-10 py-2 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {/* Like Button & Count */}
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={handleToggleLike}
+                  disabled={isProcessingLike}
+                  aria-label={isLiked ? "Unlike Shayari" : "Like Shayari"}
+                  className="cursor-pointer transition-transform active:scale-125 focus:outline-none disabled:opacity-70 flex items-center justify-center"
+                  title={isLiked ? "Unlike" : "Like"}
+                >
+                  <HeartIcon
+                    className={`w-5 h-5 transition-colors ${
+                      isLiked
+                        ? "fill-rose-500 text-rose-500"
+                        : "text-zinc-600 hover:text-rose-400"
+                    }`}
+                  />
+                </button>
+                <span className="text-xs font-medium text-zinc-600 select-none">
+                  {likesCount}
+                </span>
+              </div>
+
+              {/* Share Button */}
+              <button
+                type="button"
+                onClick={handleShare}
+                className="cursor-pointer text-zinc-600 hover:text-sky-500 transition-colors relative flex items-center justify-center"
+                title="Share Shayari"
+              >
+                {copied ? (
+                  <Check className="w-5 h-5 text-emerald-500" />
+                ) : (
+                  <Send className="w-5 h-5" />
+                )}
+              </button>
+              {copied && (
+                <span className="text-[11px] font-medium text-emerald-600">
+                  Link copied!
+                </span>
+              )}
+            </div>
+
+            {/* Bookmark Button & Count */}
             <div className="flex items-center gap-1.5">
               <button
                 type="button"
-                onClick={handleToggleLike}
-                disabled={isProcessingLike}
-                aria-label={isLiked ? "Unlike Shayari" : "Like Shayari"}
+                onClick={handleToggleBookmark}
+                disabled={isProcessingBookmark}
+                aria-label={isBookmarked ? "Remove bookmark" : "Bookmark Shayari"}
                 className="cursor-pointer transition-transform active:scale-125 focus:outline-none disabled:opacity-70 flex items-center justify-center"
-                title={isLiked ? "Unlike" : "Like"}
+                title={isBookmarked ? "Remove bookmark" : "Bookmark"}
               >
-                <HeartIcon
+                <Bookmark
                   className={`w-5 h-5 transition-colors ${
-                    isLiked
-                      ? "fill-rose-500 text-rose-500"
-                      : "text-zinc-600 hover:text-rose-400"
+                    isBookmarked
+                      ? "fill-sky-500 text-sky-500"
+                      : "text-zinc-600 hover:text-sky-400"
                   }`}
                 />
               </button>
               <span className="text-xs font-medium text-zinc-600 select-none">
-                {likesCount}
+                {bookmarksCount}
               </span>
             </div>
-
-            {/* Share Button */}
-            <button
-              type="button"
-              onClick={handleShare}
-              className="cursor-pointer text-zinc-600 hover:text-sky-500 transition-colors relative flex items-center justify-center"
-              title="Share Shayari"
-            >
-              {copied ? (
-                <Check className="w-5 h-5 text-emerald-500" />
-              ) : (
-                <Send className="w-5 h-5" />
-              )}
-            </button>
-            {copied && (
-              <span className="text-[11px] font-medium text-emerald-600">
-                Link copied!
-              </span>
-            )}
           </div>
-
-          {/* Bookmark Button & Count */}
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={handleToggleBookmark}
-              disabled={isProcessingBookmark}
-              aria-label={isBookmarked ? "Remove bookmark" : "Bookmark Shayari"}
-              className="cursor-pointer transition-transform active:scale-125 focus:outline-none disabled:opacity-70 flex items-center justify-center"
-              title={isBookmarked ? "Remove bookmark" : "Bookmark"}
-            >
-              <Bookmark
-                className={`w-5 h-5 transition-colors ${
-                  isBookmarked
-                    ? "fill-sky-500 text-sky-500"
-                    : "text-zinc-600 hover:text-sky-400"
-                }`}
-              />
-            </button>
-            <span className="text-xs font-medium text-zinc-600 select-none">
-              {bookmarksCount}
-            </span>
-          </div>
-        </div>
+        )}
 
         <div className="flex items-center justify-between gap-2 mt-1">
           <div className="Inter text-xs px-2.5 w-fit rounded-2xl py-[3px] outline-dashed outline-[0.5px] outline-zinc-500 bg-slate-100 text-zinc-700">
@@ -577,7 +626,7 @@ function SherCard({
           </div>
           {formattedDate && (
             <span className="text-[11px] text-gray-400 font-medium">
-              {formattedDate}
+              {status ? `Submitted ${formattedDate}` : formattedDate}
             </span>
           )}
         </div>

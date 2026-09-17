@@ -14,13 +14,12 @@ import {
   ArrowLeft,
   Loader2,
   Sparkles,
-  User,
-  Shield,
   Layers,
+  Feather,
 } from "lucide-react";
 
 import { fetchPostEngagement } from "@/utils/engagement";
-import { getAvatarFromUser } from "@/utils/profile";
+import { getAvatarFromUser, getNameFromUser } from "@/utils/profile";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -35,6 +34,7 @@ interface HistorySher {
   writter: string;
   authorPhoto: string | null;
   createdAt: string;
+  status?: "pending" | "approved" | "rejected";
   idx: number;
   likeCount: number;
   bookmarkCount: number;
@@ -44,7 +44,7 @@ export default function ProfileHistoryPage() {
   useLenis();
   const router = useRouter();
 
-  const [activeTab, setActiveTab] = useState<"likes" | "bookmarks">("likes");
+  const [activeTab, setActiveTab] = useState<"likes" | "bookmarks" | "submissions">("likes");
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [authChecking, setAuthChecking] = useState(true);
 
@@ -54,6 +54,18 @@ export default function ProfileHistoryPage() {
 
   const [likedPostIds, setLikedPostIds] = useState<Set<number>>(new Set());
   const [bookmarkedPostIds, setBookmarkedPostIds] = useState<Set<number>>(new Set());
+  const [submissionCount, setSubmissionCount] = useState<number | null>(null);
+
+  // Initialize active tab from query parameter if provided (?tab=submissions)
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get("tab");
+      if (tab === "likes" || tab === "bookmarks" || tab === "submissions") {
+        setActiveTab(tab);
+      }
+    }
+  }, []);
 
   // 1. Authenticate user on mount
   useEffect(() => {
@@ -105,8 +117,8 @@ export default function ProfileHistoryPage() {
       setLoadingPosts(true);
       setError(null);
 
-      // Fetch user's current likes and bookmarks sets for real-time button states
-      const [allLikesRes, allBookmarksRes] = await Promise.all([
+      // Fetch user's current likes and bookmarks sets, and total submission count in parallel
+      const [allLikesRes, allBookmarksRes, subCountRes] = await Promise.all([
         supabase
           .from("likes")
           .select("post_id")
@@ -114,6 +126,10 @@ export default function ProfileHistoryPage() {
         supabase
           .from("bookmarks")
           .select("post_id")
+          .eq("user_id", currentUser.id),
+        supabase
+          .from("posts")
+          .select("id", { count: "exact", head: true })
           .eq("user_id", currentUser.id),
       ]);
 
@@ -126,8 +142,74 @@ export default function ProfileHistoryPage() {
 
       setLikedPostIds(userLikesSet);
       setBookmarkedPostIds(userBookmarksSet);
+      setSubmissionCount(subCountRes.count ?? 0);
 
-      // Target post IDs for the active tab
+      // Branch: "submissions" tab (My Submissions)
+      if (activeTab === "submissions") {
+        const { data: postsData, error: postsErr, count: totalCount } = await supabase
+          .from("posts")
+          .select("id, user_id, content, image_url, created_at, status", { count: "exact" })
+          .eq("user_id", currentUser.id)
+          .order("created_at", { ascending: false });
+
+        if (postsErr) throw postsErr;
+
+        if (totalCount !== null && totalCount !== undefined) {
+          setSubmissionCount(totalCount);
+        } else {
+          setSubmissionCount(postsData?.length ?? 0);
+        }
+
+        if (!postsData || postsData.length === 0) {
+          setPosts([]);
+          setLoadingPosts(false);
+          return;
+        }
+
+        const postIds = postsData.map((p) => p.id);
+
+        // Fetch engagement for posts & current user's profile info
+        const [engagementMap, profileRes] = await Promise.all([
+          fetchPostEngagement(postIds),
+          supabase
+            .from("profiles")
+            .select("user_id, name, photo_url")
+            .eq("user_id", currentUser.id)
+            .maybeSingle(),
+        ]);
+
+        const authorName =
+          profileRes.data?.name?.trim() ||
+          getNameFromUser(currentUser) ||
+          "You";
+
+        const authorPhoto =
+          profileRes.data?.photo_url?.trim() ||
+          getAvatarFromUser(currentUser) ||
+          null;
+
+        const formatted: HistorySher[] = postsData.map((p, ind) => {
+          const engagement = engagementMap[p.id] || { likes: 0, bookmarks: 0 };
+          return {
+            id: p.id,
+            userId: p.user_id,
+            caption: p.content,
+            image: p.image_url,
+            writter: authorName,
+            authorPhoto: authorPhoto,
+            createdAt: p.created_at,
+            status: p.status as "pending" | "approved" | "rejected",
+            idx: ind,
+            likeCount: engagement.likes,
+            bookmarkCount: engagement.bookmarks,
+          };
+        });
+
+        setPosts(formatted);
+        return;
+      }
+
+      // Branch: "likes" or "bookmarks" tab
       const targetPostIds =
         activeTab === "likes"
           ? Array.from(userLikesSet)
@@ -175,9 +257,6 @@ export default function ProfileHistoryPage() {
       }
 
       const formatted: HistorySher[] = (postsData || []).map((p, ind) => {
-        // Author resolution architecture:
-        // 1. public.profiles.name via posts.user_id
-        // 2. fallback "Anonymous"
         const authorProfile = p.user_id ? profilesMap[p.user_id] : null;
         const displayAuthor = authorProfile?.name?.trim() || "Anonymous";
 
@@ -264,15 +343,15 @@ export default function ProfileHistoryPage() {
             Your Activity
           </h1>
           <p className="text-sm text-gray-500 mt-2">
-            Revisit your favorite verses, poetry lines, and saved literary moments.
+            Revisit your favorite verses, poetry lines, and view all your submitted Shayari.
           </p>
 
           {/* Activity Tabs */}
-          <div className="mt-6 flex justify-center gap-3">
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
             <button
               type="button"
               onClick={() => setActiveTab("likes")}
-              className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
+              className={`inline-flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
                 activeTab === "likes"
                   ? "bg-rose-500 text-white shadow-sm"
                   : "bg-white text-zinc-600 border border-gray-200 hover:bg-gray-50"
@@ -289,7 +368,7 @@ export default function ProfileHistoryPage() {
             <button
               type="button"
               onClick={() => setActiveTab("bookmarks")}
-              className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
+              className={`inline-flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
                 activeTab === "bookmarks"
                   ? "bg-sky-500 text-white shadow-sm"
                   : "bg-white text-zinc-600 border border-gray-200 hover:bg-gray-50"
@@ -302,8 +381,61 @@ export default function ProfileHistoryPage() {
               />
               <span>Bookmarks</span>
             </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab("submissions")}
+              className={`inline-flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
+                activeTab === "submissions"
+                  ? "bg-sky-500 text-white shadow-sm"
+                  : "bg-white text-zinc-600 border border-gray-200 hover:bg-gray-50"
+              }`}
+            >
+              <Feather
+                className={`w-4 h-4 ${
+                  activeTab === "submissions" ? "text-white" : "text-sky-500"
+                }`}
+              />
+              <span>My Submissions</span>
+              {submissionCount !== null && (
+                <span
+                  className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${
+                    activeTab === "submissions"
+                      ? "bg-white/20 text-white"
+                      : "bg-gray-100 text-gray-600"
+                  }`}
+                >
+                  {submissionCount}
+                </span>
+              )}
+            </button>
           </div>
         </div>
+
+        {/* My Submissions Header (Displays count & Write Shayari action) */}
+        {activeTab === "submissions" && !loadingPosts && !error && (
+          <div className="w-full max-w-7xl mx-auto mb-6 flex items-center justify-between px-2">
+            <div>
+              <h2 className="text-xl sm:text-2xl font-bold text-zinc-700">
+                My Submissions
+              </h2>
+              <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
+                {submissionCount ?? posts.length}{" "}
+                {(submissionCount ?? posts.length) === 1
+                  ? "submission"
+                  : "submissions"}
+              </p>
+            </div>
+
+            <Link
+              href="/shers/submit"
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-sky-500 hover:bg-sky-600 active:scale-98 text-white text-xs font-semibold rounded-xl shadow-xs transition-all cursor-pointer"
+            >
+              <Feather className="w-3.5 h-3.5" />
+              <span>Write Shayari</span>
+            </Link>
+          </div>
+        )}
 
         {/* Content Feed */}
         <div className="w-full max-w-7xl mx-auto mb-12">
@@ -311,7 +443,7 @@ export default function ProfileHistoryPage() {
             <div className="flex flex-col items-center justify-center py-20 gap-3">
               <Loader2 className="w-8 h-8 text-sky-500 animate-spin" />
               <p className="text-sm text-gray-400 font-medium">
-                Loading your {activeTab}...
+                Loading your {activeTab === "submissions" ? "submissions" : activeTab}...
               </p>
             </div>
           ) : error ? (
@@ -329,24 +461,41 @@ export default function ProfileHistoryPage() {
               >
                 {activeTab === "likes" ? (
                   <Heart className="w-6 h-6" />
-                ) : (
+                ) : activeTab === "bookmarks" ? (
                   <Bookmark className="w-6 h-6" />
+                ) : (
+                  <Feather className="w-6 h-6" />
                 )}
               </div>
               <h3 className="text-lg font-bold text-zinc-700">
-                No {activeTab === "likes" ? "Liked" : "Bookmarked"} Shayari Yet
+                {activeTab === "likes"
+                  ? "No Liked Shayari Yet"
+                  : activeTab === "bookmarks"
+                  ? "No Bookmarked Shayari Yet"
+                  : "You haven't submitted any Shayari yet"}
               </h3>
               <p className="text-xs text-gray-400 mt-1 mb-5">
                 {activeTab === "likes"
                   ? "When you tap the heart on any Shayari post, it will be saved here for you."
-                  : "Save your favorite verses to read anytime later by tapping the bookmark icon."}
+                  : activeTab === "bookmarks"
+                  ? "Save your favorite verses to read anytime later by tapping the bookmark icon."
+                  : "Share your verses, couplets, and poetry with the Emerge community."}
               </p>
               <Link
-                href="/shers"
+                href={activeTab === "submissions" ? "/shers/submit" : "/shers"}
                 className="inline-flex items-center gap-1.5 px-4 py-2 bg-sky-500 hover:bg-sky-600 text-white text-xs font-medium rounded-xl transition-colors shadow-xs"
               >
-                <Sparkles className="w-4 h-4" />
-                <span>Explore Shayari Feed</span>
+                {activeTab === "submissions" ? (
+                  <>
+                    <Feather className="w-4 h-4" />
+                    <span>Write Shayari</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    <span>Explore Shayari Feed</span>
+                  </>
+                )}
               </Link>
             </div>
           ) : (
@@ -360,6 +509,7 @@ export default function ProfileHistoryPage() {
                     caption={val.caption}
                     authorPhoto={val.authorPhoto}
                     createdAt={val.createdAt}
+                    status={val.status}
                     idx={val.idx}
                     userId={val.userId}
                     currentUserId={currentUser?.id ?? null}
@@ -367,9 +517,12 @@ export default function ProfileHistoryPage() {
                     initialBookmarked={bookmarkedPostIds.has(val.id)}
                     likeCount={val.likeCount}
                     bookmarkCount={val.bookmarkCount}
-                    onDelete={(deletedId) =>
-                      setPosts((prev) => prev.filter((p) => p.id !== deletedId))
-                    }
+                    onDelete={(deletedId) => {
+                      setPosts((prev) => prev.filter((p) => p.id !== deletedId));
+                      if (activeTab === "submissions") {
+                        setSubmissionCount((prev) => (prev !== null ? Math.max(0, prev - 1) : 0));
+                      }
+                    }}
                   />
                 </div>
               ))}

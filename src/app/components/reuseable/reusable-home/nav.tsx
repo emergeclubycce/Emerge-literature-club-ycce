@@ -376,6 +376,7 @@ function Nav() {
                   width={32}
                   height={32}
                   unoptimized
+                  referrerPolicy="no-referrer"
                   onError={() => setDesktopImgError(true)}
                   className="object-cover w-full h-full"
                 />
@@ -405,7 +406,7 @@ function Nav() {
             <Image src="/image/logo.png" alt="logo" width={100} height={100} />
           </div>
 
-          <div onClick={() => setmenu((prev) => !prev)} className="cursor-pointer">
+          <div onClick={() => setmenu((prev) => !prev)} className="cursor-pointer pt-8">
             <X />
           </div>
         </div>
@@ -515,6 +516,7 @@ function Nav() {
                   width={32}
                   height={32}
                   unoptimized
+                  referrerPolicy="no-referrer"
                   onError={() => setMobileImgError(true)}
                   className="object-cover w-full h-full"
                 />

@@ -1305,6 +1305,7 @@ export default function AdminDashboardPage() {
                                 width={40}
                                 height={40}
                                 unoptimized
+                                referrerPolicy="no-referrer"
                                 className="w-full h-full object-cover"
                               />
                             ) : (

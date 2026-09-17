@@ -214,6 +214,7 @@ export default function ProfilePage() {
                   width={96}
                   height={96}
                   unoptimized
+                  referrerPolicy="no-referrer"
                   className="w-full h-full object-cover"
                   onError={() => setImageError(true)}
                   onLoad={() => setImageError(false)}
