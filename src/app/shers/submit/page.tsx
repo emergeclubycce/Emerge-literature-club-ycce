@@ -116,8 +116,8 @@ export default function SubmitShayariPage() {
     if (!user) return;
 
     const trimmedContent = content.trim();
-    if (!trimmedContent) {
-      setError("Shayari content cannot be empty.");
+    if (!trimmedContent && !selectedFile) {
+      setError("Please write something or upload an image.");
       return;
     }
 
@@ -280,15 +280,17 @@ export default function SubmitShayariPage() {
                     htmlFor="content"
                     className="block text-xs font-semibold text-zinc-700 uppercase tracking-wider mb-2"
                   >
-                    Shayari / Poem Content <span className="text-red-500">*</span>
+                    Shayari / Poem Content <span className="text-gray-400 font-normal">(Optional if image provided)</span>
                   </label>
                   <textarea
                     id="content"
                     rows={6}
                     value={content}
-                    onChange={(e) => setContent(e.target.value)}
-                    placeholder="लिखिए अपने दिल के अल्फ़ाज़...&#10;Write your lines here..."
-                    required
+                    onChange={(e) => {
+                      setContent(e.target.value);
+                      if (error) setError(null);
+                    }}
+                    placeholder="लिखिए अपने दिल के अल्फ़ाज़...&#10;Write your lines here (or upload an image below)..."
                     className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm text-zinc-800 focus:bg-white focus:border-sky-500 focus:ring-1 focus:ring-sky-500 focus:outline-none transition-all leading-relaxed placeholder:text-gray-400"
                   />
                   <p className="text-[11px] text-gray-400 mt-1">
