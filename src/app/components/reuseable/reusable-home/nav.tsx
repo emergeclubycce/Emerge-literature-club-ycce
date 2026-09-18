@@ -111,7 +111,7 @@ function Nav() {
       href: "/shers",
     },
     {
-      label: "Events",
+      label: "Emerge Herald",
       href: "/event",
     },
     {
@@ -188,7 +188,7 @@ function Nav() {
               ?.toLowerCase()
               .includes("refresh token") ||
             error.name ===
-              "AuthSessionMissingError" ||
+            "AuthSessionMissingError" ||
             error.status === 400 ||
             error.status === 401;
 
@@ -216,7 +216,7 @@ function Nav() {
 
         setUser(
           (data?.user as SupabaseUser) ||
-            null
+          null
         );
       })
       .catch((err) => {
@@ -249,7 +249,7 @@ function Nav() {
           } else {
             setUser(
               (session.user as SupabaseUser) ||
-                null
+              null
             );
           }
         }
@@ -344,19 +344,19 @@ function Nav() {
 
   const profilePhotoUrl =
     (profile?.photo_url &&
-    profile.photo_url.trim().length > 0
+      profile.photo_url.trim().length > 0
       ? profile.photo_url.trim()
       : null) ||
     (typeof user?.user_metadata
       ?.avatar_url === "string" &&
-    user.user_metadata.avatar_url.trim()
-      .length > 0
+      user.user_metadata.avatar_url.trim()
+        .length > 0
       ? user.user_metadata.avatar_url.trim()
       : null) ||
     (typeof user?.user_metadata
       ?.picture === "string" &&
-    user.user_metadata.picture.trim()
-      .length > 0
+      user.user_metadata.picture.trim()
+        .length > 0
       ? user.user_metadata.picture.trim()
       : null) ||
     oauthCandidate ||
@@ -365,13 +365,13 @@ function Nav() {
   const hasValidPhoto =
     Boolean(
       profilePhotoUrl &&
-        (profilePhotoUrl.startsWith(
-          "http://"
+      (profilePhotoUrl.startsWith(
+        "http://"
+      ) ||
+        profilePhotoUrl.startsWith(
+          "https://"
         ) ||
-          profilePhotoUrl.startsWith(
-            "https://"
-          ) ||
-          profilePhotoUrl.startsWith("/"))
+        profilePhotoUrl.startsWith("/"))
     );
 
   useEffect(() => {
@@ -984,15 +984,14 @@ function Nav() {
                 transition-all
                 duration-500
 
-                ${
-                  scrolled
-                    ? `
+                ${scrolled
+                  ? `
                       bg-white/60
                       backdrop-blur-2xl
                       border-white/80
                       shadow-[0_14px_45px_rgba(45,35,25,0.14)]
                     `
-                    : `
+                  : `
                       bg-white
                       border-[#eee8e1]
                       shadow-[0_10px_32px_rgba(45,35,25,0.10)]
@@ -1180,13 +1179,12 @@ function Nav() {
                             transition-colors
                             duration-200
 
-                            ${
-                              active
-                                ? `
+                            ${active
+                              ? `
                                   text-[#1d5f9b]
                                   font-semibold
                                 `
-                                : `
+                              : `
                                   text-[#302b25]
                                   group-hover:text-[#1d5f9b]
                                 `
@@ -1356,7 +1354,7 @@ function Nav() {
                       aria-label="User menu"
                     >
                       {hasValidPhoto &&
-                      !desktopImgError ? (
+                        !desktopImgError ? (
                         <Image
                           src={
                             profilePhotoUrl!
@@ -1565,15 +1563,14 @@ function Nav() {
               transition-all
               duration-500
 
-              ${
-                scrolled
-                  ? `
+              ${scrolled
+                ? `
                     bg-white/65
                     backdrop-blur-2xl
                     border-white/80
                     shadow-[0_12px_35px_rgba(45,35,25,0.14)]
                   `
-                  : `
+                : `
                     bg-white
                     border-[#eee8e1]
                     shadow-[0_8px_25px_rgba(45,35,25,0.10)]
@@ -1756,7 +1753,7 @@ function Nav() {
                     aria-label="User menu"
                   >
                     {hasValidPhoto &&
-                    !mobileImgError ? (
+                      !mobileImgError ? (
                       <Image
                         src={
                           profilePhotoUrl!
@@ -2064,13 +2061,12 @@ function Nav() {
                               transition-colors
                               duration-200
 
-                              ${
-                                active
-                                  ? `
+                              ${active
+                                ? `
                                     bg-[#e9e2da]
                                     text-[#1d5f9b]
                                   `
-                                  : `
+                                : `
                                     text-[#302b25]
                                     hover:bg-[#eee7df]
                                   `
@@ -2121,10 +2117,9 @@ function Nav() {
                                 z-10
                                 text-base
 
-                                ${
-                                  active
-                                    ? "text-[#1d5f9b]"
-                                    : "text-[#aaa096]"
+                                ${active
+                                  ? "text-[#1d5f9b]"
+                                  : "text-[#aaa096]"
                                 }
                               `}
                             >

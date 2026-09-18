@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { Inter } from "next/font/google";
+import { Bebas_Neue, Playfair_Display, DM_Serif_Display, Cinzel, Newsreader, Inter } from "next/font/google";
 import { motion, AnimatePresence } from "framer-motion";
 import supabase from "@/config/supabase";
 import { useLenis } from "@/utils/lenis";
@@ -15,17 +15,45 @@ import {
   Sparkles,
   Trophy,
   Camera,
-  Clock,
   ChevronLeft,
   ChevronRight,
   X,
   AlertCircle,
   Loader2,
-  Medal,
   User,
   Share2,
   Check,
+  Feather,
+  Maximize2,
 } from "lucide-react";
+
+const bebas = Bebas_Neue({
+  weight: "400",
+  subsets: ["latin"],
+  variable: "--font-bebas",
+});
+
+const dmSerif = DM_Serif_Display({
+  weight: "400",
+  subsets: ["latin"],
+  variable: "--font-dm-serif",
+});
+
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  variable: "--font-playfair",
+});
+
+const cinzel = Cinzel({
+  subsets: ["latin"],
+  variable: "--font-cinzel",
+});
+
+const newsreader = Newsreader({
+  subsets: ["latin"],
+  style: ["normal", "italic"],
+  variable: "--font-newsreader",
+});
 
 const inter = Inter({
   subsets: ["latin"],
@@ -61,12 +89,12 @@ interface MemoryWinner {
 }
 
 function formatDisplayDate(dateStr: string | null): string {
-  if (!dateStr) return "Date to be announced";
+  if (!dateStr) return "Archived Date TBA";
   const [y, m, d] = dateStr.split("-").map(Number);
   if (!y || !m || !d) return dateStr;
   const dt = new Date(y, m - 1, d);
   return dt.toLocaleDateString("en-US", {
-    month: "short",
+    month: "long",
     day: "numeric",
     year: "numeric",
   });
@@ -91,7 +119,7 @@ export default function MemoryDetailPage() {
 
   const fetchMemoryDetail = useCallback(async () => {
     if (!memoryId || isNaN(memoryId)) {
-      setError("Invalid memory identifier.");
+      setError("Invalid archive record identifier.");
       setLoading(false);
       return;
     }
@@ -100,23 +128,19 @@ export default function MemoryDetailPage() {
       setLoading(true);
       setError(null);
 
-      // 1. Fetch memory record
-      const { data: memoryData, error: memoryErr } = await supabase
+      // Fetch memory
+      const { data: memData, error: memErr } = await supabase
         .from("memories")
         .select("*")
         .eq("id", memoryId)
-        .maybeSingle();
+        .single();
 
-      if (memoryErr) throw memoryErr;
-      if (!memoryData) {
-        setError("Memory not found. It may have been removed or updated.");
-        setLoading(false);
-        return;
+      if (memErr || !memData) {
+        throw new Error(memErr?.message || "Memory chronicle could not be located.");
       }
+      setMemory(memData);
 
-      setMemory(memoryData);
-
-      // 2. Fetch gallery photos
+      // Fetch photos
       const { data: photosData } = await supabase
         .from("memory_photos")
         .select("*")
@@ -126,8 +150,8 @@ export default function MemoryDetailPage() {
 
       setPhotos(photosData || []);
 
-      // 3. If competition, fetch winners
-      if (memoryData.type === "competition") {
+      // Fetch winners
+      if (memData.type === "competition") {
         const { data: winnersData } = await supabase
           .from("memory_winners")
           .select("*")
@@ -135,12 +159,10 @@ export default function MemoryDetailPage() {
           .order("id", { ascending: true });
 
         setWinners(winnersData || []);
-      } else {
-        setWinners([]);
       }
     } catch (err: any) {
-      console.error("Error loading memory detail:", err);
-      setError("Unable to load memory details. Please try again later.");
+      console.error("Failed to load memory detail:", err);
+      setError(err?.message || "Unable to load memory details.");
     } finally {
       setLoading(false);
     }
@@ -150,454 +172,272 @@ export default function MemoryDetailPage() {
     fetchMemoryDetail();
   }, [fetchMemoryDetail]);
 
-  // Combined gallery for lightbox (cover photo + gallery photos)
-  const allLightboxImages = useMemo(() => {
-    const list: { url: string; caption: string | null }[] = [];
-    if (memory?.cover_image_url) {
-      list.push({ url: memory.cover_image_url, caption: `${memory.title} - Cover` });
-    }
-    photos.forEach((p) => {
-      list.push({ url: p.image_url, caption: p.caption || memory?.title || null });
-    });
-    return list;
-  }, [memory, photos]);
-
-  // Keyboard navigation for lightbox
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (lightboxIndex === null) return;
-      if (e.key === "Escape") setLightboxIndex(null);
-      if (e.key === "ArrowLeft") {
-        setLightboxIndex((prev) =>
-          prev !== null && prev > 0 ? prev - 1 : allLightboxImages.length - 1
-        );
-      }
-      if (e.key === "ArrowRight") {
-        setLightboxIndex((prev) =>
-          prev !== null && prev < allLightboxImages.length - 1 ? prev + 1 : 0
-        );
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [lightboxIndex, allLightboxImages]);
-
-  const handleShare = async () => {
-    const origin =
-      typeof window !== "undefined"
-        ? window.location.origin
-        : "https://emergeycce.club";
-    const shareUrl = `${origin}/memories/${memoryId}`;
-
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: memory?.title || "Emerge Memories",
-          text: memory?.description || "Check out this memory from Emerge Literature Club",
-          url: shareUrl,
-        });
-        return;
-      } catch {
-        // Fallback to clipboard
-      }
-    }
-
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      console.log("Clipboard write failed");
-    }
+  const handleShare = () => {
+    if (typeof window === "undefined") return;
+    navigator.clipboard.writeText(window.location.href);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
-
-  const isCompetition = memory?.type === "competition";
 
   return (
     <main
-      className={`${inter.className} min-h-screen w-full flex flex-col items-center justify-between bg-gray-50/30`}
+      className={`${inter.className} min-h-screen w-full flex flex-col items-center justify-between bg-[#f4ebd9] text-[#1c1917]`}
     >
-      <div className="w-full flex flex-col items-center pt-24 pb-16 px-4">
-        {/* Navigation Breadcrumb */}
-        <div className="w-full max-w-5xl mx-auto mb-6 flex items-center justify-between">
+      <div className="w-full max-w-5xl mx-auto pt-24 pb-20 px-4 sm:px-6">
+        
+        {/* Newspaper Back & Share Bar */}
+        <div className="flex items-center justify-between gap-4 mb-6">
           <Link
             href="/memories"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-sky-600 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 border-2 border-[#292524] bg-[#faf6ee] text-xs font-bold uppercase tracking-wider text-[#1c1917] hover:bg-[#1c1917] hover:text-[#faf6ee] transition-all cursor-pointer shadow-xs"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Back to Memories Archive</span>
+            <span>&larr; Return to The Emerge Gazette</span>
           </Link>
 
           {memory && (
             <button
               type="button"
               onClick={handleShare}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-zinc-600 hover:bg-gray-50 transition-all cursor-pointer shadow-xs"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 border border-[#292524] bg-[#faf6ee] text-xs font-bold uppercase tracking-wider hover:bg-stone-200 shadow-xs cursor-pointer"
             >
               {copied ? (
                 <>
-                  <Check className="w-3.5 h-3.5 text-emerald-600" />
-                  <span className="text-emerald-600">Link Copied!</span>
+                  <Check className="w-3.5 h-3.5 text-emerald-700" />
+                  <span className="text-emerald-800">Copied!</span>
                 </>
               ) : (
                 <>
-                  <Share2 className="w-3.5 h-3.5 text-gray-500" />
-                  <span>Share Memory</span>
+                  <Share2 className="w-3.5 h-3.5" />
+                  <span>Share Gazette Dispatch</span>
                 </>
               )}
             </button>
           )}
         </div>
 
-        {/* Loading State */}
-        {loading ? (
-          <div className="py-32 flex flex-col items-center justify-center gap-3">
-            <Loader2 className="w-8 h-8 text-sky-500 animate-spin" />
-            <p className="text-xs text-gray-400 font-medium">
-              Loading memory details...
-            </p>
-          </div>
-        ) : error || !memory ? (
-          <div className="py-20 px-6 text-center max-w-md mx-auto bg-white border border-gray-200 rounded-2xl p-6 shadow-xs">
-            <div className="w-12 h-12 rounded-full bg-red-50 text-red-500 flex items-center justify-center mx-auto mb-3">
-              <AlertCircle className="w-6 h-6" />
+        {/* Paper Sheet Document */}
+        <div className="bg-[#faf6ee] border-2 sm:border-[3px] border-[#292524] p-6 sm:p-10 shadow-[0_15px_40px_rgba(41,37,36,0.12)]">
+          {loading ? (
+            <div className="py-24 text-center flex flex-col items-center justify-center gap-3">
+              <Loader2 className="w-8 h-8 text-[#78350f] animate-spin" />
+              <p className={`${newsreader.className} text-base text-[#57534e] italic`}>
+                Loading special archive dispatch...
+              </p>
             </div>
-            <h3 className="text-base font-bold text-zinc-800 mb-1">
-              Memory Unavailable
-            </h3>
-            <p className="text-xs text-gray-500 mb-5 leading-relaxed">
-              {error || "This memory entry could not be retrieved."}
-            </p>
-            <Link
-              href="/memories"
-              className="px-5 py-2 bg-sky-500 hover:bg-sky-600 text-white text-xs font-semibold rounded-xl transition-colors shadow-xs"
-            >
-              Return to Archive
-            </Link>
-          </div>
-        ) : (
-          <div className="w-full max-w-5xl mx-auto space-y-12">
-            {/* Header Hero Card */}
-            <div
-              className={`border-2 p-6 sm:p-8 rounded-3xl bg-white shadow-xs ${
-                isCompetition ? "border-amber-200/80" : "border-gray-200"
-              }`}
-            >
-              <div className="flex flex-col lg:flex-row gap-8 items-start">
-                {/* Cover Image */}
-                {memory.cover_image_url && (
-                  <div
-                    onClick={() => setLightboxIndex(0)}
-                    className="w-full lg:w-96 h-64 sm:h-80 rounded-2xl overflow-hidden bg-gray-100 relative flex-shrink-0 cursor-pointer group shadow-xs"
-                  >
+          ) : error || !memory ? (
+            <div className="py-12 px-6 text-center max-w-md mx-auto border-2 border-red-800 bg-[#fef2f2] p-6 my-4">
+              <AlertCircle className="w-8 h-8 text-red-700 mx-auto mb-2" />
+              <h3 className={`${playfair.className} text-lg font-bold text-red-900`}>
+                Archive Document Not Found
+              </h3>
+              <p className="text-xs text-red-700 mt-1 mb-4">{error || "The requested chronicle could not be located."}</p>
+              <Link
+                href="/memories"
+                className="px-4 py-1.5 bg-[#292524] text-[#faf6ee] text-xs font-bold uppercase tracking-wider hover:bg-black"
+              >
+                Back to Archives
+              </Link>
+            </div>
+          ) : (
+            <article className="space-y-8">
+              {/* Masthead Header */}
+              <div className="text-center border-b-2 border-[#292524] pb-4">
+                <div className="border-t-2 border-b border-[#1c1917] py-1 mb-3">
+                  <div className="flex items-center justify-between text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.2em] text-[#44403c] px-1">
+                    <span>THE SOCIETY ARCHIVE</span>
+                    <span>DISPATCH NO. #{memory.id}</span>
+                    <span>{memory.type.toUpperCase()} EDITION</span>
+                  </div>
+                </div>
+
+                <div className="my-2 py-1 border-y border-[#292524] text-[10px] sm:text-xs font-bold uppercase tracking-widest text-[#78350f] flex items-center justify-between">
+                  <span>VOL. 19, NO. {memory.id}</span>
+                  <span>✱</span>
+                  <span>RECORDED: {formatDisplayDate(memory.event_date)}</span>
+                  <span>✱</span>
+                  <span>YCCE CAMPUS</span>
+                </div>
+
+                <h1 className={`${dmSerif.className} text-3xl sm:text-5xl lg:text-6xl font-normal text-[#1c1917] leading-tight mt-3 uppercase`}>
+                  {memory.title}
+                </h1>
+              </div>
+
+              {/* Cover Photo */}
+              {memory.cover_image_url && (
+                <div className="border-2 border-[#292524] p-1.5 bg-white">
+                  <div className="relative w-full aspect-[16/9] sm:aspect-[21/9] overflow-hidden bg-stone-200">
                     <Image
                       src={memory.cover_image_url}
                       alt={memory.title}
                       fill
-                      unoptimized={memory.cover_image_url.startsWith("http")}
-                      className="object-cover group-hover:scale-105 transition-transform duration-500"
+                      priority
+                      unoptimized={memory.cover_image_url.startsWith("http") ? true : false}
+                      className="object-cover"
                     />
-                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <span className="px-3 py-1.5 rounded-xl bg-black/60 backdrop-blur-xs text-white text-xs font-semibold flex items-center gap-1.5">
-                        <Camera className="w-3.5 h-3.5" />
-                        <span>View Photo</span>
-                      </span>
-                    </div>
                   </div>
-                )}
-
-                {/* Info Column */}
-                <div className="flex-1 space-y-4">
-                  {/* Badges */}
-                  <div className="flex flex-wrap items-center gap-2">
-                    {isCompetition ? (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-500 text-white text-xs font-bold shadow-xs">
-                        <Trophy className="w-3.5 h-3.5" />
-                        <span>Competition Event</span>
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-sky-500 text-white text-xs font-bold shadow-xs">
-                        <Sparkles className="w-3.5 h-3.5" />
-                        <span>Club Gathering</span>
-                      </span>
-                    )}
-
-                    {memory.event_date ? (
-                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-gray-100 text-gray-700 text-xs font-semibold">
-                        <CalendarIcon className="w-3.5 h-3.5 text-gray-500" />
-                        <span>{formatDisplayDate(memory.event_date)}</span>
-                      </div>
-                    ) : (
-                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-gray-100 text-gray-400 text-xs font-medium">
-                        <Clock className="w-3.5 h-3.5" />
-                        <span>Date to be announced</span>
-                      </div>
-                    )}
-
-                    {photos.length > 0 && (
-                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-100 text-gray-600 text-xs font-medium">
-                        <Camera className="w-3.5 h-3.5 text-sky-500" />
-                        <span>{photos.length} Photos in Gallery</span>
-                      </div>
-                    )}
+                  <div className="py-1 px-2 border-t border-[#292524] text-[11px] font-bold uppercase tracking-wider text-[#44403c] flex items-center justify-between">
+                    <span>ARCHIVE PLATE: {memory.title}</span>
+                    <span>YCCE CAMPUS</span>
                   </div>
-
-                  {/* Title */}
-                  <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-zinc-800 leading-tight">
-                    {memory.title}
-                  </h1>
-
-                  {/* Description */}
-                  <p className="text-sm sm:text-base leading-relaxed text-zinc-600 whitespace-pre-line">
-                    {memory.description}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* ================= COMPETITION WINNERS SECTION ================= */}
-            {isCompetition && (
-              <motion.section
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="p-6 sm:p-8 rounded-3xl bg-white border-2 border-amber-200/90 shadow-xs relative overflow-hidden"
-              >
-                {/* Subtle trophy watermark */}
-                <Trophy className="absolute -right-8 -bottom-8 w-44 h-44 text-amber-50/70 pointer-events-none -rotate-12" />
-
-                <div className="relative z-10">
-                  <div className="flex items-center gap-2.5 mb-6 pb-3 border-b border-amber-100">
-                    <div className="p-2 rounded-xl bg-amber-50 text-amber-600">
-                      <Medal className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h2 className="text-xl font-bold text-zinc-800">
-                        Honorable Winners &amp; Champions
-                      </h2>
-                      <p className="text-xs text-gray-500">
-                        Recognizing exceptional performances, spoken word, and poetic mastery.
-                      </p>
-                    </div>
-                  </div>
-
-                  {winners.length === 0 ? (
-                    <div className="py-12 px-6 text-center bg-amber-50/40 border border-amber-200/60 rounded-2xl">
-                      <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mx-auto mb-3">
-                        <Trophy className="w-6 h-6" />
-                      </div>
-                      <h3 className="text-sm font-bold text-zinc-800 mb-1">
-                        Winner Details Forthcoming
-                      </h3>
-                      <p className="text-xs text-amber-800/80 max-w-sm mx-auto leading-relaxed">
-                        Winner details will be announced soon.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
-                      {winners.map((winner, idx) => (
-                        <div
-                          key={winner.id}
-                          className="p-4 bg-white border border-amber-200 rounded-2xl shadow-xs flex flex-col items-center text-center hover:border-amber-300 transition-colors"
-                        >
-                          {/* Winner Portrait */}
-                          <div className="w-24 h-24 rounded-full overflow-hidden bg-amber-50 border-2 border-amber-300 relative mb-3 shadow-xs">
-                            {winner.image_url ? (
-                              <Image
-                                src={winner.image_url}
-                                alt={winner.name}
-                                fill
-                                unoptimized={winner.image_url.startsWith("http")}
-                                className="object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-amber-400">
-                                <User className="w-10 h-10" />
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Position Badge */}
-                          {winner.position && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[11px] font-bold mb-1.5">
-                              <Trophy className="w-3 h-3 text-amber-600" />
-                              <span>{winner.position}</span>
-                            </span>
-                          )}
-
-                          {/* Winner Name */}
-                          <h3 className="text-base font-bold text-zinc-800">
-                            {winner.name}
-                          </h3>
-
-                          {/* Description / Citation */}
-                          {winner.description && (
-                            <p className="mt-1.5 text-xs text-zinc-500 leading-relaxed">
-                              {winner.description}
-                            </p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </motion.section>
-            )}
-
-            {/* ================= PHOTO GALLERY ================= */}
-            <section className="space-y-6">
-              <div className="flex items-center justify-between pb-3 border-b border-gray-200">
-                <div className="flex items-center gap-2">
-                  <div className="p-2 rounded-xl bg-sky-50 text-sky-600">
-                    <Camera className="w-4 h-4" />
-                  </div>
-                  <h2 className="text-xl font-bold text-zinc-800">
-                    Photo Gallery
-                  </h2>
-                </div>
-
-                <span className="text-xs font-semibold text-gray-400">
-                  {photos.length} Captured Moments
-                </span>
-              </div>
-
-              {photos.length === 0 ? (
-                <div className="py-16 px-6 text-center bg-white border border-gray-200 rounded-2xl">
-                  <Camera className="w-10 h-10 text-gray-300 mx-auto mb-2" />
-                  <p className="text-xs text-gray-400 font-medium">
-                    Additional gallery photographs for this memory will be published soon.
-                  </p>
-                </div>
-              ) : (
-                /* Masonry-Style Column Gallery */
-                <div className="columns-1 sm:columns-2 lg:columns-3 gap-5 space-y-5">
-                  {photos.map((photo, index) => {
-                    const actualLightboxIdx = memory.cover_image_url ? index + 1 : index;
-
-                    return (
-                      <motion.div
-                        key={photo.id}
-                        initial={{ opacity: 0, y: 15 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true, margin: "-40px" }}
-                        transition={{ duration: 0.4 }}
-                        onClick={() => setLightboxIndex(actualLightboxIdx)}
-                        className="break-inside-avoid rounded-2xl overflow-hidden border border-gray-200 bg-white group cursor-pointer shadow-xs hover:shadow-md transition-all duration-300"
-                      >
-                        <div className="relative w-full overflow-hidden bg-gray-100">
-                          <img
-                            src={photo.image_url}
-                            alt={photo.caption || memory.title}
-                            loading="lazy"
-                            className="w-full h-auto object-cover group-hover:scale-102 transition-transform duration-500"
-                          />
-
-                          <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3.5">
-                            <span className="text-white text-xs font-medium bg-black/60 backdrop-blur-xs px-2.5 py-1 rounded-lg">
-                              Expand Photo
-                            </span>
-                          </div>
-                        </div>
-
-                        {photo.caption && (
-                          <div className="p-3 text-xs text-zinc-600 bg-white border-t border-gray-100 leading-snug">
-                            {photo.caption}
-                          </div>
-                        )}
-                      </motion.div>
-                    );
-                  })}
                 </div>
               )}
-            </section>
+
+              {/* Story Text */}
+              <div className={`${newsreader.className} text-base sm:text-lg leading-relaxed text-[#292524] whitespace-pre-line border-y-2 border-[#292524] py-6`}>
+                {memory.description}
+              </div>
+
+              {/* Winners Section */}
+              {winners.length > 0 && (
+                <div className="border-2 border-[#292524] p-6 bg-[#f4ebd9]/80">
+                  <div className="flex items-center gap-2 mb-4 pb-2 border-b border-[#292524]">
+                    <Trophy className="w-5 h-5 text-[#78350f]" />
+                    <h2 className={`${cinzel.className} text-lg font-bold uppercase tracking-wider text-[#1c1917]`}>
+                      Honored Laureates &amp; Winners
+                    </h2>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    {winners.map((w, idx) => (
+                      <div
+                        key={w.id || idx}
+                        className="border border-[#292524] p-3 bg-white flex items-center gap-3"
+                      >
+                        <div className="w-12 h-12 rounded-full border border-[#292524] overflow-hidden bg-stone-200 relative flex-shrink-0">
+                          {w.image_url ? (
+                            <Image
+                              src={w.image_url}
+                              alt={w.name}
+                              fill
+                              unoptimized={w.image_url.startsWith("http") ? true : false}
+                              className="object-cover"
+                            />
+                          ) : (
+                            <User className="w-6 h-6 text-[#78350f] m-auto" />
+                          )}
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 bg-[#78350f] text-white">
+                            {w.position || "Winner"}
+                          </span>
+                          <h3 className="text-xs font-bold text-[#1c1917] mt-1">{w.name}</h3>
+                          {w.description && (
+                            <p className="text-[11px] text-[#57534e] line-clamp-1">{w.description}</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Photo Plates */}
+              {photos.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-4 pb-2 border-b-2 border-[#292524]">
+                    <Camera className="w-5 h-5 text-[#78350f]" />
+                    <h2 className={`${cinzel.className} text-lg font-bold uppercase tracking-wider text-[#1c1917]`}>
+                      Archive Photographic Plates ({photos.length})
+                    </h2>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    {photos.map((photo, pIdx) => (
+                      <div
+                        key={photo.id || pIdx}
+                        onClick={() => setLightboxIndex(pIdx)}
+                        className="border-2 border-[#292524] p-1 bg-white cursor-pointer group hover:scale-[1.02] transition-transform"
+                      >
+                        <div className="relative aspect-square w-full overflow-hidden bg-stone-200">
+                          <Image
+                            src={photo.image_url}
+                            alt={photo.caption || `Archive Photo ${pIdx + 1}`}
+                            fill
+                            unoptimized={photo.image_url.startsWith("http") ? true : false}
+                            className="object-cover"
+                          />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                            <Maximize2 className="w-5 h-5" />
+                          </div>
+                        </div>
+                        {photo.caption && (
+                          <p className="text-[11px] text-[#44403c] italic truncate mt-1 px-1">
+                            {photo.caption}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </article>
+          )}
+        </div>
+      </div>
+
+      {/* Lightbox */}
+      <AnimatePresence>
+        {lightboxIndex !== null && photos[lightboxIndex] && (
+          <div className="fixed inset-0 z-60 bg-black/90 flex flex-col items-center justify-between p-4">
+            <div className="w-full flex items-center justify-between text-white text-xs px-2 pt-2">
+              <span className="font-mono">
+                Plate {lightboxIndex + 1} of {photos.length}
+              </span>
+              <button
+                type="button"
+                onClick={() => setLightboxIndex(null)}
+                className="p-2 text-white hover:text-red-400 cursor-pointer"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="relative w-full max-w-5xl h-[70vh] sm:h-[78vh] flex items-center justify-center">
+              <Image
+                src={photos[lightboxIndex].image_url}
+                alt={photos[lightboxIndex].caption || "Enlarged Plate"}
+                fill
+                unoptimized={photos[lightboxIndex].image_url.startsWith("http") ? true : false}
+                className="object-contain"
+              />
+            </div>
+
+            <div className="w-full max-w-xl flex items-center justify-between pb-3 text-white">
+              <button
+                type="button"
+                onClick={() =>
+                  setLightboxIndex((prev) =>
+                    prev !== null ? (prev > 0 ? prev - 1 : photos.length - 1) : null
+                  )
+                }
+                className="px-3 py-1.5 bg-white/10 hover:bg-white/20 border border-white/20 text-xs flex items-center gap-1 cursor-pointer"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                <span>Previous</span>
+              </button>
+
+              <p className="text-xs text-stone-300 italic text-center px-4 truncate">
+                {photos[lightboxIndex].caption || "Archived Moment"}
+              </p>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setLightboxIndex((prev) =>
+                    prev !== null ? (prev < photos.length - 1 ? prev + 1 : 0) : null
+                  )
+                }
+                className="px-3 py-1.5 bg-white/10 hover:bg-white/20 border border-white/20 text-xs flex items-center gap-1 cursor-pointer"
+              >
+                <span>Next</span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         )}
-
-        {/* ================= LIGHTBOX MODAL ================= */}
-        <AnimatePresence>
-          {lightboxIndex !== null && allLightboxImages[lightboxIndex] && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setLightboxIndex(null)}
-              className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 select-none"
-            >
-              {/* Modal Container */}
-              <div
-                onClick={(e) => e.stopPropagation()}
-                className="relative max-w-4xl w-full max-h-[90vh] flex flex-col items-center justify-center"
-              >
-                {/* Close Button */}
-                <button
-                  type="button"
-                  onClick={() => setLightboxIndex(null)}
-                  className="absolute -top-12 right-0 p-2 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-full transition-colors cursor-pointer"
-                  aria-label="Close Lightbox"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-
-                {/* Counter */}
-                <div className="absolute -top-10 left-0 text-xs font-semibold text-white/70">
-                  {lightboxIndex + 1} / {allLightboxImages.length}
-                </div>
-
-                {/* Active Image */}
-                <div className="relative w-full h-[65vh] sm:h-[75vh] flex items-center justify-center">
-                  <img
-                    src={allLightboxImages[lightboxIndex].url}
-                    alt="Expanded view"
-                    className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
-                  />
-                </div>
-
-                {/* Caption Bar */}
-                {allLightboxImages[lightboxIndex].caption && (
-                  <p className="mt-3 text-xs sm:text-sm text-white/80 text-center max-w-xl">
-                    {allLightboxImages[lightboxIndex].caption}
-                  </p>
-                )}
-
-                {/* Prev Button */}
-                {allLightboxImages.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setLightboxIndex((prev) =>
-                        prev !== null && prev > 0 ? prev - 1 : allLightboxImages.length - 1
-                      );
-                    }}
-                    className="absolute left-2 sm:-left-12 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-black/60 hover:bg-black/80 text-white transition-colors cursor-pointer"
-                    aria-label="Previous image"
-                  >
-                    <ChevronLeft className="w-5 h-5" />
-                  </button>
-                )}
-
-                {/* Next Button */}
-                {allLightboxImages.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setLightboxIndex((prev) =>
-                        prev !== null && prev < allLightboxImages.length - 1 ? prev + 1 : 0
-                      );
-                    }}
-                    className="absolute right-2 sm:-right-12 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-black/60 hover:bg-black/80 text-white transition-colors cursor-pointer"
-                    aria-label="Next image"
-                  >
-                    <ChevronRight className="w-5 h-5" />
-                  </button>
-                )}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+      </AnimatePresence>
 
       <Footer />
     </main>

@@ -572,74 +572,96 @@ export default function EventsPage() {
                   <div
                     id={`event-${val.id}`}
                     key={val.id}
-                    className={`h-[36rem] border-2 p-4 rounded-2xl flex flex-col bg-white transition-all duration-500 ${
+                    className={`h-[38rem] border-2 p-4 rounded-2xl flex flex-col justify-between bg-white transition-all duration-500 group ${
                       isHighlighted
                         ? "border-sky-500 ring-4 ring-sky-200 shadow-xl scale-[1.01]"
-                        : "border-gray-200 hover:border-gray-300 shadow-xs"
+                        : "border-gray-200 hover:border-sky-200 hover:shadow-lg"
                     }`}
                   >
-                    {/* Poster */}
-                    <div className="h-60 sm:h-72 md:h-80 w-full overflow-hidden rounded-2xl bg-gray-100 flex-shrink-0 relative">
-                      <Image
-                        src={val.image_url || "/image/logo.png"}
-                        alt={val.title}
-                        width={800}
-                        height={600}
-                        unoptimized={val.image_url?.startsWith("http") ? true : false}
-                        className="w-full h-full object-cover"
-                      />
+                    <div className="flex flex-col flex-1 overflow-hidden">
+                      {/* Poster (Clickable to dynamic route) */}
+                      <Link
+                        href={`/event/${val.id}`}
+                        className="h-60 sm:h-64 md:h-72 w-full overflow-hidden rounded-2xl bg-gray-100 flex-shrink-0 relative block cursor-pointer"
+                      >
+                        <Image
+                          src={val.image_url || "/image/logo.png"}
+                          alt={val.title}
+                          width={800}
+                          height={600}
+                          unoptimized={val.image_url?.startsWith("http") ? true : false}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
+                          <span className="text-white text-xs font-semibold bg-black/60 backdrop-blur-xs px-2.5 py-1 rounded-lg">
+                            Click to view full event
+                          </span>
+                        </div>
+                      </Link>
+
+                      {/* Date Badge */}
+                      <div className="mt-3 flex items-center gap-1.5">
+                        {val.event_date ? (
+                          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-sky-50 text-sky-700 text-xs font-semibold">
+                            <CalendarIcon className="w-3.5 h-3.5 text-sky-500" />
+                            <span>{formatDisplayDate(val.event_date)}</span>
+                          </div>
+                        ) : (
+                          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-100 text-gray-500 text-xs font-medium">
+                            <Clock className="w-3.5 h-3.5 text-gray-400" />
+                            <span>Date to be announced</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Event Title (Clickable) */}
+                      <Link href={`/event/${val.id}`}>
+                        <h2 className="mt-2 text-lg sm:text-xl font-bold text-zinc-800 hover:text-sky-600 transition-colors line-clamp-1 cursor-pointer">
+                          {val.title}
+                        </h2>
+                      </Link>
+
+                      {/* Event Description */}
+                      <p className="mt-1.5 text-sm leading-5 text-zinc-500 line-clamp-3 pr-1">
+                        {val.description}
+                      </p>
                     </div>
 
-                    {/* Date Badge */}
-                    <div className="mt-3 flex items-center gap-1.5">
-                      {val.event_date ? (
-                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-sky-50 text-sky-700 text-xs font-semibold">
-                          <CalendarIcon className="w-3.5 h-3.5 text-sky-500" />
-                          <span>{formatDisplayDate(val.event_date)}</span>
-                        </div>
-                      ) : (
-                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-100 text-gray-500 text-xs font-medium">
-                          <Clock className="w-3.5 h-3.5 text-gray-400" />
-                          <span>Date to be announced</span>
+                    {/* Actions / Routing Section */}
+                    <div className="mt-4 pt-3 border-t border-gray-100 flex flex-col gap-2">
+                      <Link
+                        href={`/event/${val.id}`}
+                        className="w-full inline-flex items-center justify-between px-3.5 py-2 rounded-xl bg-gray-50 hover:bg-sky-50 text-zinc-700 hover:text-sky-700 text-xs font-semibold transition-all border border-gray-200/80 hover:border-sky-200 cursor-pointer"
+                      >
+                        <span>View Event Details</span>
+                        <ChevronRight className="w-4 h-4 text-sky-500 group-hover:translate-x-1 transition-transform" />
+                      </Link>
+
+                      {val.registration_enabled && (
+                        <div>
+                          {hasValidUrl && val.registration_url ? (
+                            <a
+                              href={val.registration_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-sky-500 hover:bg-sky-600 active:scale-98 text-white text-xs font-semibold rounded-xl shadow-xs transition-all cursor-pointer"
+                            >
+                              <span>Register Now</span>
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </a>
+                          ) : (
+                            <button
+                              type="button"
+                              disabled
+                              className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-gray-100 text-gray-400 text-xs font-medium rounded-xl cursor-not-allowed"
+                            >
+                              <AlertCircle className="w-3.5 h-3.5" />
+                              <span>Registration link unavailable</span>
+                            </button>
+                          )}
                         </div>
                       )}
                     </div>
-
-                    {/* Event Title */}
-                    <h2 className="mt-2 text-lg sm:text-xl font-bold text-zinc-700 line-clamp-1">
-                      {val.title}
-                    </h2>
-
-                    {/* Event Description */}
-                    <p className="mt-1.5 text-sm leading-5 text-zinc-500 overflow-y-auto flex-1 pr-1">
-                      {val.description}
-                    </p>
-
-                    {/* Registration Section */}
-                    {val.registration_enabled && (
-                      <div className="mt-3 pt-3 border-t border-gray-100">
-                        {hasValidUrl && val.registration_url ? (
-                          <a
-                            href={val.registration_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-sky-500 hover:bg-sky-600 active:scale-98 text-white text-xs font-semibold rounded-xl shadow-xs transition-all cursor-pointer"
-                          >
-                            <span>Register Now</span>
-                            <ExternalLink className="w-3.5 h-3.5" />
-                          </a>
-                        ) : (
-                          <button
-                            type="button"
-                            disabled
-                            className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-gray-100 text-gray-400 text-xs font-medium rounded-xl cursor-not-allowed"
-                          >
-                            <AlertCircle className="w-3.5 h-3.5" />
-                            <span>Registration link unavailable</span>
-                          </button>
-                        )}
-                      </div>
-                    )}
                   </div>
                 );
               })}

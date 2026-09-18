@@ -152,7 +152,7 @@ export default function ProfilePage() {
 
   return (
   <div
-    className={`${inter.className} min-h-screen bg-[#f7f4ef] text-[#302b25] relative overflow-hidden`}
+    className={`${inter.className} min-h-screen bg-white text-[#302b25] relative overflow-hidden`}
   >
     {/* =========================================================
         BACKGROUND LITERARY DECORATIONS
