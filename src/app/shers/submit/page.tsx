@@ -15,6 +15,9 @@ import {
   CheckCircle2,
   AlertCircle,
   Feather,
+  Bold,
+  Italic,
+  Underline,
 } from "lucide-react";
 import Footer from "@/app/components/reuseable/reusable-home/Footer";
 
@@ -38,6 +41,67 @@ export default function SubmitShayariPage() {
   const [submitted, setSubmitted] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Apply formatting to selected text or insert formatting tags
+  const applyFormat = (tag: "b" | "i" | "u") => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart ?? 0;
+    const end = textarea.selectionEnd ?? 0;
+    const selectedText = content.substring(start, end);
+
+    let prefix = "";
+    let suffix = "";
+    if (tag === "b") {
+      prefix = "<b>";
+      suffix = "</b>";
+    } else if (tag === "i") {
+      prefix = "<i>";
+      suffix = "</i>";
+    } else if (tag === "u") {
+      prefix = "<u>";
+      suffix = "</u>";
+    }
+
+    let newContent = "";
+    let newCursorPos = 0;
+
+    if (selectedText.length > 0) {
+      // Wrap selected text
+      newContent =
+        content.substring(0, start) +
+        prefix +
+        selectedText +
+        suffix +
+        content.substring(end);
+      newCursorPos = end + prefix.length + suffix.length;
+    } else {
+      // Insert empty tags and place cursor inside
+      newContent =
+        content.substring(0, start) + prefix + suffix + content.substring(end);
+      newCursorPos = start + prefix.length;
+    }
+
+    setContent(newContent);
+    if (error) setError(null);
+
+    // Restore focus and cursor position smoothly
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        if (selectedText.length > 0) {
+          textareaRef.current.setSelectionRange(newCursorPos, newCursorPos);
+        } else {
+          textareaRef.current.setSelectionRange(
+            start + prefix.length,
+            start + prefix.length
+          );
+        }
+      }
+    }, 0);
+  };
 
   // Authenticate user on mount
   useEffect(() => {
@@ -274,27 +338,64 @@ export default function SubmitShayariPage() {
               )}
 
               <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Content Textarea */}
+                {/* Content Textarea with Formatting Toolbar */}
                 <div>
-                  <label
-                    htmlFor="content"
-                    className="block text-xs font-semibold text-zinc-700 uppercase tracking-wider mb-2"
-                  >
-                    Shayari / Poem Content <span className="text-gray-400 font-normal">(Optional if image provided)</span>
-                  </label>
-                  <textarea
-                    id="content"
-                    rows={6}
-                    value={content}
-                    onChange={(e) => {
-                      setContent(e.target.value);
-                      if (error) setError(null);
-                    }}
-                    placeholder="लिखिए अपने दिल के अल्फ़ाज़...&#10;Write your lines here (or upload an image below)..."
-                    className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm text-zinc-800 focus:bg-white focus:border-sky-500 focus:ring-1 focus:ring-sky-500 focus:outline-none transition-all leading-relaxed placeholder:text-gray-400"
-                  />
+                  <div className="flex items-center justify-between mb-2">
+                    <label
+                      htmlFor="content"
+                      className="block text-xs font-semibold text-zinc-700 uppercase tracking-wider"
+                    >
+                      Shayari / Poem Content <span className="text-gray-400 font-normal">(Optional if image provided)</span>
+                    </label>
+
+                    {/* Formatting Toolbar: Bold, Italic, Underline */}
+                    <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg border border-gray-200">
+                      <button
+                        type="button"
+                        onClick={() => applyFormat("b")}
+                        title="Bold (<b>text</b>)"
+                        className="p-1 text-zinc-600 hover:text-zinc-900 hover:bg-white rounded transition-colors cursor-pointer"
+                        aria-label="Format Bold"
+                      >
+                        <Bold className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => applyFormat("i")}
+                        title="Italic (<i>text</i>)"
+                        className="p-1 text-zinc-600 hover:text-zinc-900 hover:bg-white rounded transition-colors cursor-pointer"
+                        aria-label="Format Italic"
+                      >
+                        <Italic className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => applyFormat("u")}
+                        title="Underline (<u>text</u>)"
+                        className="p-1 text-zinc-600 hover:text-zinc-900 hover:bg-white rounded transition-colors cursor-pointer"
+                        aria-label="Format Underline"
+                      >
+                        <Underline className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="relative">
+                    <textarea
+                      id="content"
+                      ref={textareaRef}
+                      rows={6}
+                      value={content}
+                      onChange={(e) => {
+                        setContent(e.target.value);
+                        if (error) setError(null);
+                      }}
+                      placeholder="लिखिए अपने दिल के अल्फ़ाज़...&#10;Write your lines here (or upload an image below)...&#10;Select text and click B, I, or U above to format."
+                      className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm text-zinc-800 focus:bg-white focus:border-sky-500 focus:ring-1 focus:ring-sky-500 focus:outline-none transition-all leading-relaxed placeholder:text-gray-400"
+                    />
+                  </div>
                   <p className="text-[11px] text-gray-400 mt-1">
-                    Format line breaks as you would like them to appear on the card.
+                    Select words and click <span className="font-semibold text-zinc-600">B</span>, <span className="italic text-zinc-600">I</span>, or <span className="underline text-zinc-600">U</span> to format lines.
                   </p>
                 </div>
 

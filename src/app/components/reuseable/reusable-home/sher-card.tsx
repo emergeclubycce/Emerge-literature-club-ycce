@@ -7,7 +7,7 @@ import { Inter } from "next/font/google";
 import { Bookmark, HeartIcon, Send, Check, Trash2, AlertTriangle, Loader2 } from "lucide-react";
 import supabase from "@/config/supabase";
 import { fetchPostEngagement } from "@/utils/engagement";
-import { deleteShayariPost } from "@/utils/posts";
+import { deleteShayariPost, renderFormattedText } from "@/utils/posts";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -620,7 +620,15 @@ function SherCard({
           </div>
         )}
 
-        <div className="flex items-center justify-between gap-2 mt-1">
+        {/* Shayari Text / Description (Positioned ABOVE Written by) */}
+        {caption && (
+          <div className="text-sm text-zinc-700 p-2 whitespace-pre-line leading-relaxed">
+            {renderFormattedText(caption)}
+          </div>
+        )}
+
+        {/* Written by Author Section & Date (Always at the BOTTOM of post content) */}
+        <div className="flex items-center justify-between gap-2 mt-2 px-1">
           <div className="Inter text-xs px-2.5 w-fit rounded-2xl py-[3px] outline-dashed outline-[0.5px] outline-zinc-500 bg-slate-100 text-zinc-700">
             Written by {authorName}
           </div>
@@ -629,10 +637,6 @@ function SherCard({
               {status ? `Submitted ${formattedDate}` : formattedDate}
             </span>
           )}
-        </div>
-
-        <div className="text-sm text-zinc-700 p-2 whitespace-pre-line leading-relaxed">
-          {caption}
         </div>
       </div>
     </div>

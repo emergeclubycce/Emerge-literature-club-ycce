@@ -100,7 +100,8 @@ export default function EventsPage() {
       const { data, error: err } = await supabase
         .from("events")
         .select("*")
-        .order("id", { ascending: true });
+        .order("created_at", { ascending: false, nullsFirst: false })
+        .order("id", { ascending: false });
 
       if (err) throw err;
       const loadedEvents = data || [];
@@ -572,13 +573,13 @@ export default function EventsPage() {
                   <div
                     id={`event-${val.id}`}
                     key={val.id}
-                    className={`h-[38rem] border-2 p-4 rounded-2xl flex flex-col justify-between bg-white transition-all duration-500 group ${
+                    className={`border-2 p-4 rounded-2xl flex flex-col bg-white transition-all duration-500 group ${
                       isHighlighted
                         ? "border-sky-500 ring-4 ring-sky-200 shadow-xl scale-[1.01]"
                         : "border-gray-200 hover:border-sky-200 hover:shadow-lg"
                     }`}
                   >
-                    <div className="flex flex-col flex-1 overflow-hidden">
+                    <div className="flex flex-col flex-1">
                       {/* Poster (Clickable to dynamic route) */}
                       <Link
                         href={`/event/${val.id}`}
@@ -625,43 +626,44 @@ export default function EventsPage() {
                       <p className="mt-1.5 text-sm leading-5 text-zinc-500 line-clamp-3 pr-1">
                         {val.description}
                       </p>
+
+                      {/* View Event Details - Positioned directly under description with natural, compact spacing */}
+                      <div className="mt-3">
+                        <Link
+                          href={`/event/${val.id}`}
+                          className="w-full inline-flex items-center justify-between px-3.5 py-2 rounded-xl bg-gray-50 hover:bg-sky-50 text-zinc-700 hover:text-sky-700 text-xs font-semibold transition-all border border-gray-200/80 hover:border-sky-200 cursor-pointer"
+                        >
+                          <span>View Event Details</span>
+                          <ChevronRight className="w-4 h-4 text-sky-500 group-hover:translate-x-1 transition-transform" />
+                        </Link>
+                      </div>
                     </div>
 
-                    {/* Actions / Routing Section */}
-                    <div className="mt-4 pt-3 border-t border-gray-100 flex flex-col gap-2">
-                      <Link
-                        href={`/event/${val.id}`}
-                        className="w-full inline-flex items-center justify-between px-3.5 py-2 rounded-xl bg-gray-50 hover:bg-sky-50 text-zinc-700 hover:text-sky-700 text-xs font-semibold transition-all border border-gray-200/80 hover:border-sky-200 cursor-pointer"
-                      >
-                        <span>View Event Details</span>
-                        <ChevronRight className="w-4 h-4 text-sky-500 group-hover:translate-x-1 transition-transform" />
-                      </Link>
-
-                      {val.registration_enabled && (
-                        <div>
-                          {hasValidUrl && val.registration_url ? (
-                            <a
-                              href={val.registration_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-sky-500 hover:bg-sky-600 active:scale-98 text-white text-xs font-semibold rounded-xl shadow-xs transition-all cursor-pointer"
-                            >
-                              <span>Register Now</span>
-                              <ExternalLink className="w-3.5 h-3.5" />
-                            </a>
-                          ) : (
-                            <button
-                              type="button"
-                              disabled
-                              className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-gray-100 text-gray-400 text-xs font-medium rounded-xl cursor-not-allowed"
-                            >
-                              <AlertCircle className="w-3.5 h-3.5" />
-                              <span>Registration link unavailable</span>
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
+                    {/* Registration Section (if enabled) */}
+                    {val.registration_enabled && (
+                      <div className="mt-3 pt-2.5 border-t border-gray-100">
+                        {hasValidUrl && val.registration_url ? (
+                          <a
+                            href={val.registration_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-sky-500 hover:bg-sky-600 active:scale-98 text-white text-xs font-semibold rounded-xl shadow-xs transition-all cursor-pointer"
+                          >
+                            <span>Register Now</span>
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled
+                            className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-gray-100 text-gray-400 text-xs font-medium rounded-xl cursor-not-allowed"
+                          >
+                            <AlertCircle className="w-3.5 h-3.5" />
+                            <span>Registration link unavailable</span>
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}

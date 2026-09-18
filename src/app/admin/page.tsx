@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import Footer from "@/app/components/reuseable/reusable-home/Footer";
 import { getAvatarFromUser } from "@/utils/profile";
+import { renderFormattedText } from "@/utils/posts";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -1340,9 +1341,9 @@ export default function AdminDashboardPage() {
                       </div>
 
                       {/* 2. Post Text */}
-                      <p className="text-sm text-zinc-700 whitespace-pre-line leading-relaxed pl-1">
-                        {post.content}
-                      </p>
+                      <div className="text-sm text-zinc-700 whitespace-pre-line leading-relaxed pl-1">
+                        {renderFormattedText(post.content)}
+                      </div>
 
                       {/* 3. Post Image (Clickable Lightbox Thumbnail) */}
                       {post.image_url && (

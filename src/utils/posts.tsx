@@ -1,8 +1,87 @@
 import supabase from "@/config/supabase";
+import React from "react";
 
 export interface DeletePostResult {
   success: boolean;
   error?: string;
+}
+
+/**
+ * Safely parses markdown-like bold, italic, and underline tags into React elements.
+ * Supported tags:
+ * - Bold: **text** or <b>text</b>
+ * - Italic: *text* or _text_ or <i>text</i>
+ * - Underline: <u>text</u>
+ * All plain text is safely escaped by React and cannot execute arbitrary HTML/JS (XSS safe).
+ */
+export function renderFormattedText(text: string | null | undefined): React.ReactNode {
+  if (!text) return null;
+
+  // Split lines to preserve line breaks faithfully
+  const lines = text.split("\n");
+
+  return lines.map((line, lineIdx) => {
+    return (
+      <React.Fragment key={lineIdx}>
+        {lineIdx > 0 && <br />}
+        {parseLineFormatting(line)}
+      </React.Fragment>
+    );
+  });
+}
+
+function parseLineFormatting(line: string): React.ReactNode[] {
+  if (!line) return [];
+
+  // Regex pattern matching:
+  // 1. <b>...</b> or **...**
+  // 2. <i>...</i>
+  // 3. <u>...</u>
+  // 4. *...*
+  // 5. _..._
+  const pattern = /(<b>[\s\S]*?<\/b>|\*\*[\s\S]*?\*\*|<i>[\s\S]*?<\/i>|<u>[\s\S]*?<\/u>|\*[^\*\n]+?\*|_[^_\n]+?_)/g;
+  const parts = line.split(pattern);
+
+  return parts.map((part, idx) => {
+    if (!part) return null;
+
+    // Bold: <b>text</b> or **text**
+    if (part.startsWith("<b>") && part.endsWith("</b>")) {
+      const inner = part.slice(3, -4);
+      return <strong key={idx} className="font-bold">{parseLineFormatting(inner)}</strong>;
+    }
+    if (part.startsWith("**") && part.endsWith("**") && part.length >= 4) {
+      const inner = part.slice(2, -2);
+      return <strong key={idx} className="font-bold">{parseLineFormatting(inner)}</strong>;
+    }
+
+    // Italic: <i>text</i>
+    if (part.startsWith("<i>") && part.endsWith("</i>")) {
+      const inner = part.slice(3, -4);
+      return <em key={idx} className="italic">{parseLineFormatting(inner)}</em>;
+    }
+
+    // Underline: <u>text</u>
+    if (part.startsWith("<u>") && part.endsWith("</u>")) {
+      const inner = part.slice(3, -4);
+      return <u key={idx} className="underline underline-offset-2">{parseLineFormatting(inner)}</u>;
+    }
+
+    // Italic markdown fallback: *text* (when not double asterisk)
+    if (part.startsWith("*") && part.endsWith("*") && part.length >= 2 && !part.startsWith("**")) {
+      const inner = part.slice(1, -1);
+      return <em key={idx} className="italic">{parseLineFormatting(inner)}</em>;
+    }
+
+    // Italic markdown fallback: _text_
+    if (part.startsWith("_") && part.endsWith("_") && part.length >= 2) {
+      const inner = part.slice(1, -1);
+      return <em key={idx} className="italic">{parseLineFormatting(inner)}</em>;
+    }
+
+    // Default plain text (React safely auto-escapes this)
+    return <React.Fragment key={idx}>{part}</React.Fragment>;
+  });
 }
 
 /**
