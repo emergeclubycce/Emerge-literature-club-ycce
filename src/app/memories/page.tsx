@@ -307,8 +307,8 @@ export default function MemoriesPage() {
                   type="button"
                   onClick={() => setActiveFilter("all")}
                   className={`px-3 py-1.5 text-xs uppercase font-bold tracking-wider transition-all border cursor-pointer ${activeFilter === "all"
-                      ? "bg-[#1c1917] text-[#faf6ee] border-[#1c1917] shadow-xs"
-                      : "bg-[#f4ebd9] text-[#44403c] border-[#292524] hover:bg-[#eae0cb]"
+                    ? "bg-[#1c1917] text-[#faf6ee] border-[#1c1917] shadow-xs"
+                    : "bg-[#f4ebd9] text-[#44403c] border-[#292524] hover:bg-[#eae0cb]"
                     }`}
                 >
                   All Chronicles ({memories.length})
@@ -318,8 +318,8 @@ export default function MemoriesPage() {
                   type="button"
                   onClick={() => setActiveFilter("event")}
                   className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs uppercase font-bold tracking-wider transition-all border cursor-pointer ${activeFilter === "event"
-                      ? "bg-[#1c1917] text-[#faf6ee] border-[#1c1917] shadow-xs"
-                      : "bg-[#f4ebd9] text-[#44403c] border-[#292524] hover:bg-[#eae0cb]"
+                    ? "bg-[#1c1917] text-[#faf6ee] border-[#1c1917] shadow-xs"
+                    : "bg-[#f4ebd9] text-[#44403c] border-[#292524] hover:bg-[#eae0cb]"
                     }`}
                 >
                   <Sparkles className="w-3 h-3 text-[#78350f]" />
@@ -330,8 +330,8 @@ export default function MemoriesPage() {
                   type="button"
                   onClick={() => setActiveFilter("competition")}
                   className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs uppercase font-bold tracking-wider transition-all border cursor-pointer ${activeFilter === "competition"
-                      ? "bg-[#1c1917] text-[#faf6ee] border-[#1c1917] shadow-xs"
-                      : "bg-[#f4ebd9] text-[#44403c] border-[#292524] hover:bg-[#eae0cb]"
+                    ? "bg-[#1c1917] text-[#faf6ee] border-[#1c1917] shadow-xs"
+                    : "bg-[#f4ebd9] text-[#44403c] border-[#292524] hover:bg-[#eae0cb]"
                     }`}
                 >
                   <Trophy className="w-3 h-3 text-[#78350f]" />

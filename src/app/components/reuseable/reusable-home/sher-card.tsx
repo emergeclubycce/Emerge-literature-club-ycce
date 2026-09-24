@@ -385,7 +385,7 @@ function SherCard({
     : null;
 
   return (
-    <div className="h-auto border-2 px-2 py-1 rounded-2xl bg-white border-gray-200 w-full max-w-md mx-auto shadow-xs relative">
+    <div className="h-auto border-2 px-2 py-1 rounded-2xl bg-white  border-gray-200 w-full max-w-md mx-auto shadow-xs relative">
       {/* Header */}
       <div className="h-15 w-full p-2 flex items-center justify-between px-3">
         <div className="flex items-center gap-3">
@@ -526,7 +526,11 @@ function SherCard({
           />
         </div>
       )}
-
+  {caption && (
+          <div className="text-sm text-zinc-700 p-2 whitespace-pre-line leading-relaxed">
+            {renderFormattedText(caption)}
+          </div>
+        )}
       {/* Footer */}
       <div className="h-auto w-full px-2 pb-2">
         {status && status !== "approved" ? (
@@ -621,11 +625,7 @@ function SherCard({
         )}
 
         {/* Shayari Text / Description (Positioned ABOVE Written by) */}
-        {caption && (
-          <div className="text-sm text-zinc-700 p-2 whitespace-pre-line leading-relaxed">
-            {renderFormattedText(caption)}
-          </div>
-        )}
+      
 
         {/* Written by Author Section & Date (Always at the BOTTOM of post content) */}
         <div className="flex items-center justify-between gap-2 mt-2 px-1">

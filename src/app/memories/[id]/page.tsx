@@ -184,7 +184,7 @@ export default function MemoryDetailPage() {
       className={`${inter.className} min-h-screen w-full flex flex-col items-center justify-between bg-[#f4ebd9] text-[#1c1917]`}
     >
       <div className="w-full max-w-5xl mx-auto pt-24 pb-20 px-4 sm:px-6">
-        
+
         {/* Newspaper Back & Share Bar */}
         <div className="flex items-center justify-between gap-4 mb-6">
           <Link

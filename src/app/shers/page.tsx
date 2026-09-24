@@ -12,7 +12,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Feather,
-  Loader2,
   Plus,
   Sparkles,
 } from "lucide-react";
@@ -300,11 +299,59 @@ function ShersContent() {
         {/* Content feed - Responsive Pinterest-style Masonry Layout */}
         <div className="w-full max-w-7xl mx-auto mb-12">
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-20 gap-3">
-              <Loader2 className="w-8 h-8 text-sky-500 animate-spin" />
-              <p className="text-sm text-gray-400 font-medium">
-                Loading verses...
-              </p>
+            /* ── Skeleton Loader – masonry grid of shimmer cards ── */
+            <div className="columns-1 md:columns-2 lg:columns-3 gap-6 space-y-6">
+              {[
+                { hasImage: true,  lines: 2, tall: true  },
+                { hasImage: false, lines: 4, tall: false },
+                { hasImage: true,  lines: 3, tall: false },
+                { hasImage: false, lines: 5, tall: true  },
+                { hasImage: true,  lines: 2, tall: false },
+                { hasImage: false, lines: 3, tall: false },
+                { hasImage: true,  lines: 4, tall: true  },
+                { hasImage: false, lines: 2, tall: false },
+                { hasImage: true,  lines: 3, tall: false },
+              ].map((card, i) => (
+                <div
+                  key={i}
+                  className="break-inside-avoid bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm"
+                  style={{ animationDelay: `${i * 80}ms` }}
+                >
+                  {/* Image placeholder */}
+                  {card.hasImage && (
+                    <div
+                      className={`w-full bg-gray-200 animate-pulse ${card.tall ? "h-52" : "h-36"}`}
+                    />
+                  )}
+
+                  <div className="p-4 space-y-3">
+                    {/* Author row */}
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-full bg-gray-200 animate-pulse shrink-0" />
+                      <div className="h-3 w-24 rounded bg-gray-200 animate-pulse" />
+                      <div className="ml-auto h-3 w-12 rounded bg-gray-100 animate-pulse" />
+                    </div>
+
+                    {/* Text lines */}
+                    <div className="space-y-2">
+                      {Array.from({ length: card.lines }).map((_, li) => (
+                        <div
+                          key={li}
+                          className="h-3 rounded bg-gray-200 animate-pulse"
+                          style={{ width: li === card.lines - 1 ? "65%" : "100%" }}
+                        />
+                      ))}
+                    </div>
+
+                    {/* Action row */}
+                    <div className="flex items-center gap-3 pt-1">
+                      <div className="h-3 w-10 rounded bg-gray-100 animate-pulse" />
+                      <div className="h-3 w-10 rounded bg-gray-100 animate-pulse" />
+                      <div className="ml-auto h-3 w-8 rounded bg-gray-100 animate-pulse" />
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : error ? (
             <div className="py-16 text-center max-w-md mx-auto bg-white border border-gray-200 rounded-2xl p-6">
@@ -332,8 +379,12 @@ function ShersContent() {
           ) : (
             <>
               <div className="columns-1 md:columns-2 lg:columns-3 gap-6 space-y-6">
-                {posts.map((val) => (
-                  <div key={val.id} className="break-inside-avoid">
+                {posts.map((val, index) => (
+                  <div
+                    key={val.id}
+                    className="break-inside-avoid sher-card-enter"
+                    style={{ animationDelay: `${index * 55}ms` }}
+                  >
                     <SherCard
                       id={val.id}
                       writter={val.writter}
@@ -369,6 +420,7 @@ function ShersContent() {
                   </div>
                 ))}
               </div>
+
 
               {/* Server-Side Pagination Controls */}
               {totalPages >= 1 && (
@@ -473,11 +525,26 @@ export default function ShersPage() {
           className={`${inter.className} min-h-screen w-full flex flex-col items-center justify-between bg-gray-50/30`}
         >
           <div className="w-full flex flex-col items-center pt-24 pb-16 px-4">
-            <div className="flex flex-col items-center justify-center py-20 gap-3">
-              <Loader2 className="w-8 h-8 text-sky-500 animate-spin" />
-              <p className="text-sm text-gray-400 font-medium">
-                Loading verses...
-              </p>
+            <div className="columns-1 md:columns-2 lg:columns-3 gap-6 space-y-6 w-full max-w-7xl mx-auto mt-8">
+              {[true, false, true, false, true, false].map((hasImg, i) => (
+                <div
+                  key={i}
+                  className="break-inside-avoid bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm"
+                >
+                  {hasImg && <div className="w-full h-40 bg-gray-200 animate-pulse" />}
+                  <div className="p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-full bg-gray-200 animate-pulse" />
+                      <div className="h-3 w-24 rounded bg-gray-200 animate-pulse" />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="h-3 w-full rounded bg-gray-200 animate-pulse" />
+                      <div className="h-3 w-4/5 rounded bg-gray-200 animate-pulse" />
+                      <div className="h-3 w-2/3 rounded bg-gray-200 animate-pulse" />
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
           <Footer />
