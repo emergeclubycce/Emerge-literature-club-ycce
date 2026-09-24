@@ -7,18 +7,41 @@ export interface DeletePostResult {
 }
 
 /**
- * Safely parses markdown-like bold, italic, and underline tags into React elements.
+ * Normalizes formatting tags that span across multiple lines by splitting
+ * them into per-line open and close tags so line-by-line rendering preserves formatting.
+ */
+function normalizeMultilineTags(text: string): string {
+  const tagList = ["b", "strong", "i", "em", "u"];
+  let normalized = text;
+  for (const tag of tagList) {
+    const regex = new RegExp(`(<${tag}>)([\\s\\S]*?)(<\\/${tag}>)`, "gi");
+    normalized = normalized.replace(regex, (_, open, content, close) => {
+      if (!content.includes("\n")) return `${open}${content}${close}`;
+      return content
+        .split("\n")
+        .map((line: string) => (line ? `${open}${line}${close}` : ""))
+        .join("\n");
+    });
+  }
+  return normalized;
+}
+
+/**
+ * Safely parses bold, italic, and underline tags into React elements.
  * Supported tags:
- * - Bold: **text** or <b>text</b>
- * - Italic: *text* or _text_ or <i>text</i>
+ * - Bold: **text** or <b>text</b> or <strong>text</strong>
+ * - Italic: *text* or _text_ or <i>text</i> or <em>text</em>
  * - Underline: <u>text</u>
  * All plain text is safely escaped by React and cannot execute arbitrary HTML/JS (XSS safe).
  */
 export function renderFormattedText(text: string | null | undefined): React.ReactNode {
   if (!text) return null;
 
+  // Pre-normalize any multiline tags so each line remains self-contained
+  const normalizedText = normalizeMultilineTags(text);
+
   // Split lines to preserve line breaks faithfully
-  const lines = text.split("\n");
+  const lines = normalizedText.split("\n");
 
   return lines.map((line, lineIdx) => {
     return (
@@ -34,20 +57,26 @@ function parseLineFormatting(line: string): React.ReactNode[] {
   if (!line) return [];
 
   // Regex pattern matching:
-  // 1. <b>...</b> or **...**
-  // 2. <i>...</i>
+  // 1. <b>...</b> or <strong>...</strong> or **...**
+  // 2. <i>...</i> or <em>...</em>
   // 3. <u>...</u>
   // 4. *...*
   // 5. _..._
-  const pattern = /(<b>[\s\S]*?<\/b>|\*\*[\s\S]*?\*\*|<i>[\s\S]*?<\/i>|<u>[\s\S]*?<\/u>|\*[^\*\n]+?\*|_[^_\n]+?_)/g;
+  const pattern = /(<b>[\s\S]*?<\/b>|<strong>[\s\S]*?<\/strong>|\*\*[\s\S]*?\*\*|<i>[\s\S]*?<\/i>|<em>[\s\S]*?<\/em>|<u>[\s\S]*?<\/u>|\*[^\*\n]+?\*|_[^_\n]+?_)/gi;
   const parts = line.split(pattern);
 
   return parts.map((part, idx) => {
     if (!part) return null;
 
-    // Bold: <b>text</b> or **text**
-    if (part.startsWith("<b>") && part.endsWith("</b>")) {
+    const lower = part.toLowerCase();
+
+    // Bold: <b>text</b>, <strong>text</strong>, or **text**
+    if (lower.startsWith("<b>") && lower.endsWith("</b>") && part.length >= 7) {
       const inner = part.slice(3, -4);
+      return <strong key={idx} className="font-bold">{parseLineFormatting(inner)}</strong>;
+    }
+    if (lower.startsWith("<strong>") && lower.endsWith("</strong>") && part.length >= 17) {
+      const inner = part.slice(8, -9);
       return <strong key={idx} className="font-bold">{parseLineFormatting(inner)}</strong>;
     }
     if (part.startsWith("**") && part.endsWith("**") && part.length >= 4) {
@@ -55,14 +84,18 @@ function parseLineFormatting(line: string): React.ReactNode[] {
       return <strong key={idx} className="font-bold">{parseLineFormatting(inner)}</strong>;
     }
 
-    // Italic: <i>text</i>
-    if (part.startsWith("<i>") && part.endsWith("</i>")) {
+    // Italic: <i>text</i> or <em>text</em>
+    if (lower.startsWith("<i>") && lower.endsWith("</i>") && part.length >= 7) {
       const inner = part.slice(3, -4);
+      return <em key={idx} className="italic">{parseLineFormatting(inner)}</em>;
+    }
+    if (lower.startsWith("<em>") && lower.endsWith("</em>") && part.length >= 9) {
+      const inner = part.slice(4, -5);
       return <em key={idx} className="italic">{parseLineFormatting(inner)}</em>;
     }
 
     // Underline: <u>text</u>
-    if (part.startsWith("<u>") && part.endsWith("</u>")) {
+    if (lower.startsWith("<u>") && lower.endsWith("</u>") && part.length >= 7) {
       const inner = part.slice(3, -4);
       return <u key={idx} className="underline underline-offset-2">{parseLineFormatting(inner)}</u>;
     }
@@ -82,6 +115,199 @@ function parseLineFormatting(line: string): React.ReactNode[] {
     // Default plain text (React safely auto-escapes this)
     return <React.Fragment key={idx}>{part}</React.Fragment>;
   });
+}
+
+/**
+ * Strips formatting tags (<b>, <i>, <u>, <strong>, <em>, **, *, _) from text.
+ * Returns clean plain text for metadata, character count, or previews.
+ */
+export function stripFormatting(text: string | null | undefined): string {
+  if (!text) return "";
+  return text
+    .replace(/<\/?(b|strong|i|em|u)>/gi, "")
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/\*(.*?)\*/g, "$1")
+    .replace(/_(.*?)_/g, "$1");
+}
+
+/**
+ * Checks whether content contains actual meaningful text (not just empty formatting tags or whitespace).
+ */
+export function hasMeaningfulText(text: string | null | undefined): boolean {
+  if (!text) return false;
+  const stripped = stripFormatting(text).replace(/\u00a0/g, " ").trim();
+  return stripped.length > 0;
+}
+
+/**
+ * Safely converts the contenteditable HTML tree into a clean formatted string
+ * with only <b>, <i>, <u> tags and \n for line breaks.
+ * Strips all unsafe tags, attributes, inline styles (except standard bold/italic/underline), etc.
+ */
+export function serializeEditorHtml(root: HTMLElement): string {
+  if (!root) return "";
+
+  // Check if there is any visible text
+  const rawText = (root.innerText || root.textContent || "").replace(/\u00a0/g, " ");
+  if (!rawText.trim()) {
+    return "";
+  }
+
+  function serializeNode(node: Node): string {
+    if (node.nodeType === Node.TEXT_NODE) {
+      return (node.nodeValue || "").replace(/\u00a0/g, " ");
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) {
+      return "";
+    }
+
+    const el = node as HTMLElement;
+    const tag = el.tagName.toLowerCase();
+
+    if (tag === "br") {
+      return "\n";
+    }
+
+    let childrenText = "";
+    for (let i = 0; i < el.childNodes.length; i++) {
+      childrenText += serializeNode(el.childNodes[i]);
+    }
+
+    // Determine formatting
+    const isBold =
+      tag === "b" ||
+      tag === "strong" ||
+      el.style.fontWeight === "bold" ||
+      parseInt(el.style.fontWeight, 10) >= 600;
+
+    const isItalic =
+      tag === "i" ||
+      tag === "em" ||
+      el.style.fontStyle === "italic";
+
+    const isUnderline =
+      tag === "u" ||
+      (el.style.textDecoration && el.style.textDecoration.includes("underline"));
+
+    let formatted = childrenText;
+    if (isUnderline && formatted) {
+      formatted = wrapLines(formatted, "u");
+    }
+    if (isItalic && formatted) {
+      formatted = wrapLines(formatted, "i");
+    }
+    if (isBold && formatted) {
+      formatted = wrapLines(formatted, "b");
+    }
+
+    // Handle block element wrappers like <div> or <p> created by Enter
+    if (el !== root && (tag === "div" || tag === "p")) {
+      // If the block contains only a single <br>, it's an empty line placeholder
+      if (el.childNodes.length === 1 && el.firstChild?.nodeName.toLowerCase() === "br") {
+        formatted = "";
+      }
+      if (el.previousSibling) {
+        return "\n" + formatted;
+      }
+    }
+
+    return formatted;
+  }
+
+  function wrapLines(text: string, tag: "b" | "i" | "u"): string {
+    return text
+      .split("\n")
+      .map((line) => (line.length > 0 ? `<${tag}>${line}</${tag}>` : ""))
+      .join("\n");
+  }
+
+  const result = serializeNode(root);
+  return result.replace(/\r\n/g, "\n").trim();
+}
+
+/**
+ * Converts a stored formatted string back into clean HTML for display inside the WYSIWYG contenteditable editor.
+ */
+export function editorValueToHtml(text: string): string {
+  if (!text) return "";
+  const lines = text.split("\n");
+  return lines
+    .map((line) => {
+      if (!line) return "<div><br></div>";
+      return `<div>${line}</div>`;
+    })
+    .join("");
+}
+
+/**
+ * Sanitizes rich text from clipboard paste, keeping only bold, italic, underline, and line breaks.
+ * Completely strips all scripts, handlers, images, styles, iframes, links, etc.
+ */
+export function sanitizePastedHtml(rawHtml: string): string {
+  if (typeof window === "undefined" || typeof DOMParser === "undefined") {
+    return "";
+  }
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(rawHtml, "text/html");
+
+    function cleanNode(node: Node): string {
+      if (node.nodeType === Node.TEXT_NODE) {
+        return (node.nodeValue || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+      }
+      if (node.nodeType !== Node.ELEMENT_NODE) {
+        return "";
+      }
+
+      const el = node as HTMLElement;
+      const tag = el.tagName.toLowerCase();
+
+      if (tag === "br") return "<br>";
+
+      let inner = "";
+      for (let i = 0; i < el.childNodes.length; i++) {
+        inner += cleanNode(el.childNodes[i]);
+      }
+
+      if (!inner) return "";
+
+      const isBold =
+        tag === "b" ||
+        tag === "strong" ||
+        el.style.fontWeight === "bold" ||
+        parseInt(el.style.fontWeight, 10) >= 600;
+
+      const isItalic =
+        tag === "i" ||
+        tag === "em" ||
+        el.style.fontStyle === "italic";
+
+      const isUnderline =
+        tag === "u" ||
+        (el.style.textDecoration && el.style.textDecoration.includes("underline"));
+
+      let res = inner;
+      if (isUnderline) res = `<u>${res}</u>`;
+      if (isItalic) res = `<i>${res}</i>`;
+      if (isBold) res = `<b>${res}</b>`;
+
+      if (tag === "div" || tag === "p") {
+        return `<div>${res}</div>`;
+      }
+      return res;
+    }
+
+    let result = "";
+    for (let i = 0; i < doc.body.childNodes.length; i++) {
+      result += cleanNode(doc.body.childNodes[i]);
+    }
+    return result;
+  } catch {
+    return "";
+  }
 }
 
 /**

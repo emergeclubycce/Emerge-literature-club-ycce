@@ -7,6 +7,7 @@ import Footer from "@/app/components/reuseable/reusable-home/Footer";
 import supabase from "@/config/supabase";
 import { ArrowLeft, AlertCircle } from "lucide-react";
 import { fetchPostEngagement } from "@/utils/engagement";
+import { stripFormatting } from "@/utils/posts";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -77,7 +78,7 @@ export async function generateMetadata({
   }
 
   const descriptionSnippet = post.content
-    ? post.content.replace(/\n/g, " ").slice(0, 150)
+    ? stripFormatting(post.content).replace(/\n/g, " ").slice(0, 150)
     : "Check out this poem on Emerge Literature Club";
 
   return {
