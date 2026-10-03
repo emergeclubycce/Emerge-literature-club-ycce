@@ -274,9 +274,9 @@ function ShersContent() {
     <main
       className={`${inter.className} min-h-screen w-full flex flex-col items-center justify-between bg-gray-50/30`}
     >
-      <div className="w-full flex flex-col items-center pt-24 pb-16 px-4">
+      <div className="w-full flex flex-col items-center pt-24 pb-16 px-0 sm:px-4">
         {/* Header section */}
-        <div className="text-center max-w-xl mb-8">
+        <div className="text-center max-w-xl mb-8 px-4">
           <h1 className="text-4xl sm:text-5xl text-gray-600 font-bold tracking-tight">
             Sher-Shayari
           </h1>

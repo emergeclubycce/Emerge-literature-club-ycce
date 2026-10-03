@@ -85,10 +85,10 @@ function Page() {
 
 
             <div className='landing-screen relative h-screen  w-full flex flex-col items-center justify-center text-black font-bold  overflow-hidden'>
-              <Image ref={cardRef} draggable={false} src='/image/cardborad.png' alt='logo' width={700} height={200} className=' parallex image absolute z-30 md:-bottom-20 md:-left-50 bottom-10 -left-50   ' />
-              <Image draggable={false} src='/image/cardborad.png' alt='logo' width={700} height={200} className='image absolute  md:-top-30 md:-left-60  -top-10 -left-45 z-30 md:z-10  ' />
+              <Image ref={cardRef} draggable={false} src='/image/cardborad.png' alt='logo' width={700} height={200} className=' parallex image absolute z-30 md:-bottom-20 md:-left-50 bottom-10 -left-50  ' />
+              <Image draggable={false} src='/image/cardborad.png' alt='logo' width={700} height={200} className='image absolute  md:-top-30 md:-left-60  -top-10 -left-45 z-30 md:z-10   ' />
               <Image draggable={false} src='/image/cardborad.png' alt='logo' width={700} height={200} className='image absolute rotate-180 -bottom-10 -right-40  z-30 md:z-10 md:-bottom-20 md:right-10' />
-              <Image draggable={false} src='/image/cardborad.png' alt='logo' width={700} height={200} className='parallex2 image absolute rotate-0 top-0 left-260  z-40 md:z-30 md:-bottom-20 md:right-10' />
+              <Image draggable={false} src='/image/cardborad.png' alt='logo' width={700} height={200} className='parallex2 image absolute rotate-0 top-0 left-50 md:top-0 md:left-260  z-40 md:z-30 ' />
 
               <div className='screen-wrap  h-[80%]  flex-col w-[96%] md:w-[80%] z-20 flex items-center justify-center shadow-xl '>
                 <Image ref={cardRef} draggable={false} src='/image/Litraure-logo.png' alt='logo' width={700} height={200} className='parallex' />

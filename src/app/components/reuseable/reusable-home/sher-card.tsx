@@ -1,11 +1,26 @@
 "use client";
 
 import { logger } from "@/utils/logger";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Inter } from "next/font/google";
-import { Bookmark, HeartIcon, Send, Check, Trash2, AlertTriangle, Loader2 } from "lucide-react";
+import {
+  Bookmark,
+  HeartIcon,
+  Send,
+  Check,
+  Trash2,
+  AlertTriangle,
+  Loader2,
+  MessageCircle,
+  MoreHorizontal,
+  Share2,
+  Copy,
+  Feather,
+  Sparkles,
+  X
+} from "lucide-react";
 import supabase from "@/config/supabase";
 import { fetchPostEngagement } from "@/utils/engagement";
 import { deleteShayariPost, renderFormattedText } from "@/utils/posts";
@@ -62,6 +77,12 @@ function SherCard({
   const [isProcessingBookmark, setIsProcessingBookmark] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
   const [authorPhotoError, setAuthorPhotoError] = useState<boolean>(false);
+  const [captionExpanded, setCaptionExpanded] = useState<boolean>(false);
+  const [showOptionsModal, setShowOptionsModal] = useState<boolean>(false);
+
+  // Instagram-style double tap to like
+  const [showHeartPop, setShowHeartPop] = useState<boolean>(false);
+  const lastTapRef = useRef<number>(0);
 
   useEffect(() => {
     setAuthorPhotoError(false);
@@ -125,7 +146,7 @@ function SherCard({
     }
   }, [initialBookmarked]);
 
-  // If initialLiked or initialBookmarked are not passed (e.g. standalone Share page), fetch for current user
+  // If initialLiked or initialBookmarked are not passed, fetch for current user
   useEffect(() => {
     const numericPostId =
       typeof id === "number"
@@ -180,7 +201,7 @@ function SherCard({
     };
   }, [id, initialLiked, initialBookmarked]);
 
-  // Fetch engagement counts if not passed via props (e.g. standalone Share page)
+  // Fetch engagement counts if not passed via props
   useEffect(() => {
     const numericPostId =
       typeof id === "number"
@@ -210,12 +231,8 @@ function SherCard({
         ? Number(id)
         : null;
 
-    // Ignore static home-page cards without a valid numeric post ID
-    if (!numericPostId) return;
+    if (!numericPostId || isProcessingLike) return;
 
-    if (isProcessingLike) return;
-
-    // Check authenticated user
     const { data: authData, error: authErr } = await supabase.auth.getUser();
     if (authErr && authErr.message?.toLowerCase().includes("refresh token")) {
       await supabase.auth.signOut({ scope: "local" }).catch(() => {});
@@ -228,7 +245,7 @@ function SherCard({
     }
 
     const nextLiked = !isLiked;
-    setIsLiked(nextLiked); // Optimistic update
+    setIsLiked(nextLiked);
     setLikesCount((prev) => (nextLiked ? prev + 1 : Math.max(0, prev - 1)));
     setIsProcessingLike(true);
 
@@ -249,11 +266,25 @@ function SherCard({
       }
     } catch (err) {
       logger.error("Failed to update like status:", err);
-      setIsLiked(!nextLiked); // Revert on failure
+      setIsLiked(!nextLiked);
       setLikesCount((prev) => (!nextLiked ? prev + 1 : Math.max(0, prev - 1)));
     } finally {
       setIsProcessingLike(false);
     }
+  };
+
+  // Handle double-tap on image (Instagram signature gesture)
+  const handleImageTouch = () => {
+    const now = Date.now();
+    const DOUBLE_TAP_DELAY = 300;
+    if (now - lastTapRef.current < DOUBLE_TAP_DELAY) {
+      if (!isLiked) {
+        handleToggleLike();
+      }
+      setShowHeartPop(true);
+      setTimeout(() => setShowHeartPop(false), 800);
+    }
+    lastTapRef.current = now;
   };
 
   // Handle Bookmark Toggle
@@ -265,12 +296,8 @@ function SherCard({
         ? Number(id)
         : null;
 
-    // Ignore static home-page cards without a valid numeric post ID
-    if (!numericPostId) return;
+    if (!numericPostId || isProcessingBookmark) return;
 
-    if (isProcessingBookmark) return;
-
-    // Check authenticated user
     const { data: authData, error: authErr } = await supabase.auth.getUser();
     if (authErr && authErr.message?.toLowerCase().includes("refresh token")) {
       await supabase.auth.signOut({ scope: "local" }).catch(() => {});
@@ -283,7 +310,7 @@ function SherCard({
     }
 
     const nextBookmarked = !isBookmarked;
-    setIsBookmarked(nextBookmarked); // Optimistic update
+    setIsBookmarked(nextBookmarked);
     setBookmarksCount((prev) => (nextBookmarked ? prev + 1 : Math.max(0, prev - 1)));
     setIsProcessingBookmark(true);
 
@@ -304,7 +331,7 @@ function SherCard({
       }
     } catch (err) {
       logger.error("Failed to update bookmark status:", err);
-      setIsBookmarked(!nextBookmarked); // Revert on failure
+      setIsBookmarked(!nextBookmarked);
       setBookmarksCount((prev) => (!nextBookmarked ? prev + 1 : Math.max(0, prev - 1)));
     } finally {
       setIsProcessingBookmark(false);
@@ -332,7 +359,6 @@ function SherCard({
       }
     }
 
-    // Graceful fallback: Copy to clipboard
     try {
       await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
@@ -364,6 +390,7 @@ function SherCard({
       }
 
       setShowDeleteModal(false);
+      setShowOptionsModal(false);
       if (onDelete) {
         onDelete(numericPostId);
       } else {
@@ -385,92 +412,320 @@ function SherCard({
       })
     : null;
 
+  // Caption truncation logic for Instagram-style "... more"
+  const isLongCaption = caption && caption.length > 110;
+  const showTruncated = isLongCaption && !captionExpanded;
+
   return (
-    <div className="h-auto border-2 px-2 py-1 rounded-2xl bg-white  border-gray-200 w-full max-w-md mx-auto shadow-xs relative">
-      {/* Header */}
-      <div className="h-15 w-full p-2 flex items-center justify-between px-3">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full overflow-hidden border border-gray-300 bg-gray-50 flex items-center justify-center flex-shrink-0">
-            {authorPhoto && !authorPhotoError ? (
-              <Image
-                src={authorPhoto}
-                alt={authorName}
-                width={40}
-                height={40}
-                unoptimized
-                referrerPolicy="no-referrer"
-                onError={() => setAuthorPhotoError(true)}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <Image src="/image/logo.png" alt="logo" width={40} height={40} />
-            )}
+    <article
+      className={`${inter.className} w-full max-w-md mx-auto bg-white border-b border-gray-200/80 sm:border sm:rounded-2xl sm:shadow-xs overflow-hidden transition-all relative select-none sm:select-auto`}
+    >
+      {/* ========================================================= */}
+      {/* 1. INSTAGRAM POST HEADER                                  */}
+      {/* ========================================================= */}
+      <header className="h-14 w-full px-3.5 flex items-center justify-between bg-white">
+        <div className="flex items-center gap-2.5 min-w-0">
+          {/* Avatar with colorful Instagram Story gradient border */}
+          <div className="p-[1.5px] rounded-full bg-linear-to-tr border-1 border-sky-300 flex-shrink-0">
+            <div className="h-8 w-8 rounded-full overflow-hidden bg-white border border-white flex items-center justify-center">
+              {authorPhoto && !authorPhotoError ? (
+                <Image
+                  src={authorPhoto}
+                  alt={authorName}
+                  width={32}
+                  height={32}
+                  unoptimized
+                  referrerPolicy="no-referrer"
+                  onError={() => setAuthorPhotoError(true)}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <Image src="/image/logo.png" alt="logo" width={32} height={32} />
+              )}
+            </div>
           </div>
-          <div>
-            <p className={`${inter.className} font-medium text-sm text-zinc-800`}>
+
+          {/* User information */}
+          <div className="flex flex-col min-w-0">
+            <span className="font-semibold text-xs sm:text-[13px] text-zinc-900 leading-tight truncate hover:underline cursor-pointer">
               {authorName}
-            </p>
-            <p className="text-[11px] text-gray-400">
-              Emerge Literature Club | YCCE
-            </p>
+            </span>
+            <span className="text-[10px] text-zinc-500 leading-tight">
+              Emerge Literature Club • YCCE
+            </span>
           </div>
         </div>
 
-        {/* Right header controls */}
-        <div className="flex items-center gap-2">
-          {status && (
+        {/* Header Right: Status Tag or 3-Dots Menu */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {status && status !== "approved" && (
             <span
-              className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-semibold rounded-full capitalize ${
-                status === "approved"
-                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                  : status === "rejected"
+              className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold rounded-full capitalize ${
+                status === "rejected"
                   ? "bg-red-50 text-red-700 border border-red-200"
                   : "bg-amber-50 text-amber-700 border border-amber-200"
               }`}
             >
               <span
                 className={`w-1.5 h-1.5 rounded-full ${
-                  status === "approved"
-                    ? "bg-emerald-500"
-                    : status === "rejected"
-                    ? "bg-red-500"
-                    : "bg-amber-500 animate-pulse"
+                  status === "rejected" ? "bg-red-500" : "bg-amber-500 animate-pulse"
                 }`}
               />
-              <span className="capitalize">{status}</span>
+              <span>{status}</span>
             </span>
           )}
 
-          {isOwner && (
-            <button
-              type="button"
-              onClick={() => setShowDeleteModal(true)}
-              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-              title="Delete your Shayari"
-              aria-label="Delete your Shayari"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          )}
+          {/* More Options (...) Button */}
+          <button
+            type="button"
+            onClick={() => setShowOptionsModal(true)}
+            className="p-1.5 text-zinc-600 hover:text-zinc-900 active:scale-95 transition-transform cursor-pointer"
+            aria-label="Post options"
+            title="Options"
+          >
+            <MoreHorizontal size={18} />
+          </button>
+        </div>
+      </header>
 
-          <div className="h-full flex flex-col items-center justify-center gap-[3px]">
-            <div className="h-1 w-1 bg-gray-300 rounded-2xl"></div>
-            <div className="h-1 w-1 bg-gray-300 rounded-2xl"></div>
-            <div className="h-1 w-1 bg-gray-300 rounded-2xl"></div>
+      {/* ========================================================= */}
+      {/* 2. MEDIA / IMAGE SECTION (EDGE-TO-EDGE ON MOBILE)        */}
+      {/* ========================================================= */}
+      {image ? (
+        <div
+          className="relative w-full bg-zinc-950/5 flex items-center justify-center overflow-hidden cursor-pointer"
+          onClick={handleImageTouch}
+        >
+          <img
+            src={image}
+            alt="Shayari artwork"
+            loading="eager"
+            decoding="async"
+            className="w-full h-auto max-h-[580px] object-cover sm:object-contain select-none"
+          />
+
+          {/* Double-tap animated heart pop */}
+          {showHeartPop && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20 animate-in zoom-in-50 duration-200">
+              <HeartIcon className="w-24 h-24 text-white fill-white drop-shadow-[0_4px_12px_rgba(0,0,0,0.5)] animate-bounce" />
+            </div>
+          )}
+        </div>
+      ) : (
+        /* Text-only shayari canvas (Instagram poetry slide style) */
+        <div
+          className="relative w-full aspect-square sm:aspect-4/3 bg-linear-to-b from-[#faf8f4] via-[#f7f2ea] to-[#f2eae0] border-y border-[#e8ded0] p-6 sm:p-8 flex flex-col items-center justify-center text-center cursor-pointer select-none"
+          onClick={handleImageTouch}
+        >
+          <Feather className="w-6 h-6 text-amber-700/40 mb-3" />
+          <div className="text-zinc-800 text-sm sm:text-base leading-relaxed font-serif max-w-xs sm:max-w-sm whitespace-pre-line">
+            {renderFormattedText(caption)}
           </div>
+          <span className="text-[10px] tracking-widest uppercase font-semibold text-amber-800/60 mt-4">
+            ~ {authorName}
+          </span>
+
+          {/* Double tap heart for text post */}
+          {showHeartPop && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20 animate-in zoom-in-50 duration-200">
+              <HeartIcon className="w-20 h-20 text-rose-500 fill-rose-500 drop-shadow-md animate-bounce" />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* 3. INSTAGRAM ACTION BAR (Directly below photo)           */}
+      {/* ========================================================= */}
+      <div className="px-3 pt-2.5 pb-1 flex items-center justify-between bg-white">
+        <div className="flex items-center gap-4">
+          {/* Like Heart Button */}
+          <button
+            type="button"
+            onClick={handleToggleLike}
+            disabled={isProcessingLike}
+            aria-label={isLiked ? "Unlike" : "Like"}
+            className="cursor-pointer transition-transform active:scale-125 focus:outline-none disabled:opacity-70 flex items-center justify-center"
+            title={isLiked ? "Unlike" : "Like"}
+          >
+            <HeartIcon
+              className={`w-6 h-6 transition-colors ${
+                isLiked
+                  ? "fill-rose-500 text-rose-500 animate-in zoom-in-75 duration-150"
+                  : "text-zinc-800 hover:text-zinc-600"
+              }`}
+            />
+          </button>
+
+          {/* Comment Bubble Button */}
+          {/* <button
+            type="button"
+            onClick={() => setCaptionExpanded(true)}
+            className="cursor-pointer text-zinc-800 hover:text-zinc-600 active:scale-125 transition-transform flex items-center justify-center"
+            aria-label="Comment on Sher"
+            title="Read Discussion"
+          >
+            <MessageCircle className="w-6 h-6" />
+          </button> */}
+
+          {/* Share / Paper Plane Button */}
+          <button
+            type="button"
+            onClick={handleShare}
+            className="cursor-pointer text-zinc-800 hover:text-sky-500 active:scale-125 transition-transform relative flex items-center justify-center"
+            aria-label="Share Sher"
+            title="Share Sher"
+          >
+            {copied ? (
+              <Check className="w-6 h-6 text-emerald-500" />
+            ) : (
+              <Send className="w-6 h-6 -rotate-12" />
+            )}
+          </button>
+        </div>
+
+        {/* Bookmark / Ribbon Save Button */}
+        <div>
+          <button
+            type="button"
+            onClick={handleToggleBookmark}
+            disabled={isProcessingBookmark}
+            aria-label={isBookmarked ? "Remove bookmark" : "Save post"}
+            className="cursor-pointer transition-transform active:scale-125 focus:outline-none disabled:opacity-70 flex items-center justify-center"
+            title={isBookmarked ? "Saved" : "Save"}
+          >
+            <Bookmark
+              className={`w-6 h-6 transition-colors ${
+                isBookmarked
+                  ? "fill-zinc-900 text-zinc-900"
+                  : "text-zinc-800 hover:text-zinc-600"
+              }`}
+            />
+          </button>
         </div>
       </div>
 
-      {/* Delete Confirmation Modal */}
+      {/* ========================================================= */}
+      {/* 4. LIKES COUNTER (INSTAGRAM STYLE: "X likes")            */}
+      {/* ========================================================= */}
+      <div className="px-3.5 pt-1 text-xs sm:text-[13px] font-bold text-zinc-900 select-none">
+        {likesCount.toLocaleString()} {likesCount === 1 ? "like" : "likes"}
+      </div>
+
+      {/* ========================================================= */}
+      {/* 5. CAPTION & INLINE USERNAME (INSTAGRAM STYLE)           */}
+      {/* ========================================================= */}
+      {caption && (
+        <div className="px-3.5 pt-1 text-xs sm:text-[13px] text-zinc-800 leading-snug break-words">
+          {/* <span className="font-bold text-zinc-900 mr-2 hover:underline cursor-pointer">
+            {authorName}
+          </span> */}
+          <span className="whitespace-pre-line font-normal">
+            {showTruncated
+              ? renderFormattedText(caption.slice(0, 110))
+              : renderFormattedText(caption)}
+          </span>
+          {isLongCaption && (
+            <button
+              type="button"
+              onClick={() => setCaptionExpanded(!captionExpanded)}
+              className="text-zinc-400 hover:text-zinc-600 font-medium text-xs ml-1 cursor-pointer select-none"
+            >
+              {captionExpanded ? " less" : "... more"}
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Copied Feedback Toast */}
+      {copied && (
+        <div className="px-3.5 pt-1">
+          <span className="text-[11px] font-semibold text-emerald-600">
+            ✓ Post link copied to clipboard
+          </span>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* 6. TIMESTAMP (BOTTOM)                                     */}
+      {/* ========================================================= */}
+      <div className="px-3.5 pt-1.5 pb-3">
+        <time className="block text-[10px] text-zinc-400 uppercase tracking-wider font-normal">
+          {formattedDate || "JUST NOW"}
+        </time>
+      </div>
+
+      {/* ========================================================= */}
+      {/* 7. INSTAGRAM OPTIONS BOTTOM SHEET / MODAL                 */}
+      {/* ========================================================= */}
+      {showOptionsModal && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-2xs p-0 sm:p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-t-3xl sm:rounded-2xl max-w-sm w-full overflow-hidden shadow-2xl text-center divide-y divide-gray-100">
+            {/* Share Link Option */}
+            <button
+              type="button"
+              onClick={() => {
+                setShowOptionsModal(false);
+                handleShare();
+              }}
+              className="w-full py-3.5 px-4 text-xs sm:text-sm font-semibold text-zinc-800 hover:bg-gray-50 flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <Share2 className="w-4 h-4 text-sky-500" />
+              <span>Share to...</span>
+            </button>
+
+            {/* Copy Link Option */}
+            <button
+              type="button"
+              onClick={() => {
+                setShowOptionsModal(false);
+                handleShare();
+              }}
+              className="w-full py-3.5 px-4 text-xs sm:text-sm font-semibold text-zinc-800 hover:bg-gray-50 flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <Copy className="w-4 h-4 text-zinc-500" />
+              <span>Copy Link</span>
+            </button>
+
+            {/* Delete Option (only for post owner) */}
+            {isOwner && (
+              <button
+                type="button"
+                onClick={() => {
+                  setShowOptionsModal(false);
+                  setShowDeleteModal(true);
+                }}
+                className="w-full py-3.5 px-4 text-xs sm:text-sm font-bold text-red-600 hover:bg-red-50 flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Trash2 className="w-4 h-4 text-red-600" />
+                <span>Delete Post</span>
+              </button>
+            )}
+
+            {/* Cancel Button */}
+            <button
+              type="button"
+              onClick={() => setShowOptionsModal(false)}
+              className="w-full py-3.5 px-4 text-xs sm:text-sm font-medium text-zinc-500 hover:bg-gray-50 cursor-pointer"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* 8. DELETE CONFIRMATION MODAL                              */}
+      {/* ========================================================= */}
       {showDeleteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-2xs p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl border border-gray-200 max-w-sm w-full p-6 shadow-xl text-left">
             <div className="w-12 h-12 rounded-full bg-red-50 text-red-500 flex items-center justify-center mb-4">
               <AlertTriangle className="w-6 h-6" />
             </div>
 
             <h3 className="text-lg font-bold text-zinc-800">
-              Delete this Shayari?
+              Delete this Post?
             </h3>
             <p className="text-xs text-gray-500 mt-2 leading-relaxed">
               This action cannot be undone. Your poem, artwork, and associated interactions will be permanently removed.
@@ -516,133 +771,7 @@ function SherCard({
           </div>
         </div>
       )}
-
-      {/* Image Section (only if image exists) */}
-      {image && (
-        <div className="h-auto w-full border-gray-300 flex items-center justify-center px-2 py-1 text-center">
-          <img
-            src={image}
-            alt="Shayari artwork"
-            loading="eager"
-            decoding="async"
-            className="overflow-hidden rounded-2xl w-full h-auto object-contain"
-          />
-        </div>
-      )}
-  {caption && (
-          <div className="text-sm text-zinc-700 p-2 whitespace-pre-line leading-relaxed">
-            {renderFormattedText(caption)}
-          </div>
-        )}
-      {/* Footer */}
-      <div className="h-auto w-full px-2 pb-2">
-        {status && status !== "approved" ? (
-          <div className="w-full py-2.5 px-1 flex items-center justify-between text-xs text-gray-500 border-b border-gray-100 mb-1">
-            <span className="flex items-center gap-1.5 font-medium">
-              <span
-                className={`w-2 h-2 rounded-full ${
-                  status === "pending"
-                    ? "bg-amber-400 animate-pulse"
-                    : "bg-red-400"
-                }`}
-              />
-              <span className="text-zinc-700">
-                {status === "pending"
-                  ? "Awaiting Admin Review"
-                  : "Submission Rejected"}
-              </span>
-            </span>
-            <span className="text-[11px] text-gray-400">
-              {status === "pending" ? "Pending moderation" : "Not published"}
-            </span>
-          </div>
-        ) : (
-          <div className="w-full h-10 py-2 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {/* Like Button & Count */}
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={handleToggleLike}
-                  disabled={isProcessingLike}
-                  aria-label={isLiked ? "Unlike Shayari" : "Like Shayari"}
-                  className="cursor-pointer transition-transform active:scale-125 focus:outline-none disabled:opacity-70 flex items-center justify-center"
-                  title={isLiked ? "Unlike" : "Like"}
-                >
-                  <HeartIcon
-                    className={`w-5 h-5 transition-colors ${
-                      isLiked
-                        ? "fill-rose-500 text-rose-500"
-                        : "text-zinc-600 hover:text-rose-400"
-                    }`}
-                  />
-                </button>
-                <span className="text-xs font-medium text-zinc-600 select-none">
-                  {likesCount}
-                </span>
-              </div>
-
-              {/* Share Button */}
-              <button
-                type="button"
-                onClick={handleShare}
-                className="cursor-pointer text-zinc-600 hover:text-sky-500 transition-colors relative flex items-center justify-center"
-                title="Share Shayari"
-              >
-                {copied ? (
-                  <Check className="w-5 h-5 text-emerald-500" />
-                ) : (
-                  <Send className="w-5 h-5" />
-                )}
-              </button>
-              {copied && (
-                <span className="text-[11px] font-medium text-emerald-600">
-                  Link copied!
-                </span>
-              )}
-            </div>
-
-            {/* Bookmark Button & Count */}
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={handleToggleBookmark}
-                disabled={isProcessingBookmark}
-                aria-label={isBookmarked ? "Remove bookmark" : "Bookmark Shayari"}
-                className="cursor-pointer transition-transform active:scale-125 focus:outline-none disabled:opacity-70 flex items-center justify-center"
-                title={isBookmarked ? "Remove bookmark" : "Bookmark"}
-              >
-                <Bookmark
-                  className={`w-5 h-5 transition-colors ${
-                    isBookmarked
-                      ? "fill-sky-500 text-sky-500"
-                      : "text-zinc-600 hover:text-sky-400"
-                  }`}
-                />
-              </button>
-              <span className="text-xs font-medium text-zinc-600 select-none">
-                {bookmarksCount}
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* Shayari Text / Description (Positioned ABOVE Written by) */}
-      
-
-        {/* Written by Author Section & Date (Always at the BOTTOM of post content) */}
-        <div className="flex items-center justify-between gap-2 mt-2 px-1">
-          <div className="Inter text-xs px-2.5 w-fit rounded-2xl py-[3px] outline-dashed outline-[0.5px] outline-zinc-500 bg-slate-100 text-zinc-700">
-            Written by {authorName}
-          </div>
-          {formattedDate && (
-            <span className="text-[11px] text-gray-400 font-medium">
-              {status ? `Submitted ${formattedDate}` : formattedDate}
-            </span>
-          )}
-        </div>
-      </div>
-    </div>
+    </article>
   );
 }
 
