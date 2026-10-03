@@ -1,12 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+export const dynamic = "force-dynamic";
+
 const FROM = process.env.EMAIL_FROM ?? "emerge@emergeycce.club";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://emergeycce.club";
 
 export async function POST(req: NextRequest) {
   try {
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) {
+      console.warn("RESEND_API_KEY is not set. Email not sent.");
+      return NextResponse.json(
+        { error: "RESEND_API_KEY environment variable is not configured" },
+        { status: 500 }
+      );
+    }
+    const resend = new Resend(apiKey);
+
     const { email, name, preview, postId } = await req.json();
 
     if (!email) {
