@@ -243,12 +243,21 @@ export default function SubmitShayariPage() {
       }
 
       // 2. Insert post row with status = 'pending'
-      const { error: insertError } = await supabase.from("posts").insert({
+      const postPayload: Record<string, any> = {
         user_id: user.id,
         content: trimmedContent,
         image_url: uploadedImageUrl,
         status: "pending",
-      });
+        author_email: user.email ?? null,
+      };
+
+      let { error: insertError } = await supabase.from("posts").insert(postPayload);
+
+      if (insertError && (insertError.message?.includes("author_email") || (insertError as any).code === "PGRST204")) {
+        delete postPayload.author_email;
+        const retry = await supabase.from("posts").insert(postPayload);
+        insertError = retry.error;
+      }
 
       if (insertError) {
         // Attempt cleanup of orphaned uploaded image
@@ -264,7 +273,25 @@ export default function SubmitShayariPage() {
         throw insertError;
       }
 
-      // Success
+      // Success — fire submission email (non-blocking, don't fail the UX if email fails)
+      try {
+        const userEmail = user?.email;
+        const userName = user?.user_metadata?.full_name ?? user?.email ?? "there";
+        if (userEmail) {
+          fetch("/api/email/submission", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: userEmail,
+              name: userName,
+              preview: trimmedContent,
+            }),
+          }).catch(() => {}); // swallow silently — email failure should not break UX
+        }
+      } catch {
+        // email errors are non-fatal
+      }
+
       setSubmitted(true);
     } catch (err: any) {
       logger.error("Shayari submission error:", err);

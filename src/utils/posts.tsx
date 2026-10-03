@@ -93,16 +93,20 @@ function parseLineFormatting(line: string): React.ReactNode[] {
 }
 
 /**
- * Permanently deletes a Shayari post owned by the authenticated user.
+ * Permanently deletes a Shayari post.
  * 
- * 1. Strictly checks authenticated user session (auth.uid()).
- * 2. Enforces ownership: only post owner (post.user_id === auth.uid()) can delete.
- * 3. Removes post row from public.posts:
- *    DELETE FROM public.posts WHERE id = target_post_id AND user_id = auth.uid()
- *    Using .select() to verify at least 1 row was actually deleted.
- * 4. Cleans up any orphaned likes or bookmarks associated with this post.
- * 5. Cleans up the uploaded image from the "post-images" Supabase Storage bucket
- *    if the post contained an uploaded file in that bucket.
+ * Authorization:
+ *   - The post OWNER can delete their own post.
+ *   - An ADMIN (row in public.admins) can delete ANY post.
+ *
+ * Steps:
+ * 1. Checks authenticated user session (auth.uid()).
+ * 2. Fetches post record to get image_url and verify it exists.
+ * 3. Checks if the caller is an admin via the public.admins table.
+ * 4. Enforces ownership for non-admins.
+ * 5. Cleans up related likes & bookmarks.
+ * 6. Deletes the post row (RLS on Supabase enforces the final permission).
+ * 7. Cleans up the image from Supabase Storage if applicable.
  */
 export async function deleteShayariPost(
   postId: number | string,
@@ -163,7 +167,17 @@ export async function deleteShayariPost(
       };
     }
 
-    if (postRecord.user_id !== currentUser.id) {
+    // 3b. Check if the current user is an admin — admins can delete any post
+    const { data: adminRecord } = await supabase
+      .from("admins")
+      .select("user_id")
+      .eq("user_id", currentUser.id)
+      .maybeSingle();
+
+    const isAdmin = !!adminRecord;
+
+    // 3c. Ownership gate: non-admins can only delete their own posts
+    if (!isAdmin && postRecord.user_id !== currentUser.id) {
       return {
         success: false,
         error: "You can only delete your own posts.",
@@ -178,28 +192,52 @@ export async function deleteShayariPost(
       supabase.from("bookmarks").delete().eq("post_id", numericPostId),
     ]);
 
-    // 5. Permanently delete from public.posts with strict ownership check
-    // We append .select("id") so PostgREST returns deleted rows; if 0 rows deleted, we catch it!
-    const { data: deletedRows, error: deleteErr } = await supabase
-      .from("posts")
-      .delete()
-      .eq("id", numericPostId)
-      .eq("user_id", currentUser.id)
-      .select("id");
+    // 5. Permanently delete from public.posts.
+    // Two separate paths so TypeScript types are clean and no query builder mutation occurs.
+    // The RLS policy on Supabase must allow: auth.uid() = user_id OR public.is_admin()
+    let deletedRows: { id: number }[] | null = null;
+    let deleteErr: any = null;
+
+    logger.log("[deleteShayariPost] isAdmin:", isAdmin, "postOwner:", postRecord.user_id, "currentUser:", currentUser.id);
+
+    if (isAdmin) {
+      // Admin path: delete by post id only — RLS allows admins to delete any post
+      const result = await supabase
+        .from("posts")
+        .delete()
+        .eq("id", numericPostId)
+        .select("id");
+      deletedRows = result.data as { id: number }[] | null;
+      deleteErr = result.error;
+    } else {
+      // Owner path: delete with both id AND user_id for safety
+      const result = await supabase
+        .from("posts")
+        .delete()
+        .eq("id", numericPostId)
+        .eq("user_id", currentUser.id)
+        .select("id");
+      deletedRows = result.data as { id: number }[] | null;
+      deleteErr = result.error;
+    }
 
     if (deleteErr) {
+      logger.error("[deleteShayariPost] deleteErr:", deleteErr);
       return {
         success: false,
         error: `Database deletion failed: ${deleteErr.message}`,
       };
     }
 
+    logger.log("[deleteShayariPost] deletedRows:", deletedRows);
+
     // If RLS blocked the deletion or no row was removed, deletedRows is empty:
     if (!deletedRows || deletedRows.length === 0) {
       return {
         success: false,
-        error:
-          "Post could not be deleted. Please verify your database RLS permissions or post ownership.",
+        error: isAdmin
+          ? "Admin delete failed — please ensure the RLS policy 'Authors and admins can delete posts' is applied in your Supabase Dashboard (SQL Editor → run SUPABASE_SECURITY_POLICIES.sql)."
+          : "Post could not be deleted. You can only delete your own posts.",
       };
     }
 

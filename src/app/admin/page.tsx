@@ -29,6 +29,10 @@ import {
   Camera,
   Medal,
   Trophy,
+  ClipboardList,
+  Activity,
+  Filter,
+  RefreshCw,
 } from "lucide-react";
 import Footer from "@/app/components/reuseable/reusable-home/Footer";
 import { getAvatarFromUser } from "@/utils/profile";
@@ -49,6 +53,7 @@ interface PostItem {
   updated_at: string;
   authorName: string;
   authorPhoto: string | null;
+  author_email?: string | null;
 }
 
 interface AdminEvent {
@@ -92,6 +97,19 @@ interface AdminWinner {
   description: string | null;
 }
 
+interface ActivityLog {
+  id: number;
+  action: "INSERT" | "UPDATE" | "DELETE";
+  table_name: string;
+  record_id: number | null;
+  user_id: string | null;
+  user_email: string | null;
+  description: string | null;
+  old_data: Record<string, any> | null;
+  new_data: Record<string, any> | null;
+  created_at: string;
+}
+
 export default function AdminDashboardPage() {
   const router = useRouter();
 
@@ -99,8 +117,13 @@ export default function AdminDashboardPage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [user, setUser] = useState<any>(null);
 
-  // Section switcher: Shayari Moderation vs Events Management vs Memories Management
-  const [mainSection, setMainSection] = useState<"shayari" | "events" | "memories">("shayari");
+  // Section switcher: Shayari Moderation vs Events Management vs Memories Management vs Activity Log
+  const [mainSection, setMainSection] = useState<"shayari" | "events" | "memories" | "logs">("shayari");
+
+  // ----------------- 4. ACTIVITY LOG STATE -----------------
+  const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
+  const [loadingLogs, setLoadingLogs] = useState(false);
+  const [logsFilter, setLogsFilter] = useState<"all" | "posts" | "events" | "memories" | "admins">("all");
 
   // Feedback banner
   const [feedbackMessage, setFeedbackMessage] = useState<{
@@ -253,7 +276,7 @@ export default function AdminDashboardPage() {
 
         const { data: postsData, error: postsError } = await supabase
           .from("posts")
-          .select("id, user_id, content, image_url, status, created_at, updated_at")
+          .select("*")
           .eq("status", activeTab)
           .order("created_at", { ascending: activeTab === "pending" });
 
@@ -305,6 +328,7 @@ export default function AdminDashboardPage() {
               updated_at: p.updated_at,
               authorName: displayAuthor,
               authorPhoto: authorPhoto,
+              author_email: (p as any).author_email || null,
             };
           });
 
@@ -398,6 +422,31 @@ export default function AdminDashboardPage() {
     }
   }, [isAdmin, fetchAdminMemories]);
 
+  // ----------------- ACTIVITY LOG FETCH -----------------
+  const fetchActivityLogs = async (filter: "all" | "posts" | "events" | "memories" | "admins" = "all") => {
+    if (!isAdmin) return;
+    try {
+      setLoadingLogs(true);
+      let query = supabase
+        .from("activity_logs")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(200);
+
+      if (filter !== "all") {
+        query = query.eq("table_name", filter === "posts" ? "posts" : filter === "events" ? "events" : filter === "memories" ? "memories" : "admins");
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      setActivityLogs((data || []) as ActivityLog[]);
+    } catch (err: any) {
+      logger.error("Failed to load activity logs:", err);
+    } finally {
+      setLoadingLogs(false);
+    }
+  };
+
   // ----------------- SHAYARI ACTIONS -----------------
   const handleApprove = async (postId: number) => {
     try {
@@ -414,11 +463,45 @@ export default function AdminDashboardPage() {
 
       if (error) throw error;
 
+      // Find the approved post's author email before removing from list
+      const approvedPost = posts.find((p) => p.id === postId);
       setPosts((prev) => prev.filter((p) => p.id !== postId));
       setFeedbackMessage({
         type: "success",
         text: `Post #${postId} has been approved successfully!`,
       });
+
+      // Send approval email to the author (non-blocking)
+      if (approvedPost) {
+        try {
+          let authorEmail = approvedPost.author_email;
+
+          // If not stored directly on post, check profiles table
+          if (!authorEmail && approvedPost.user_id) {
+            const { data: profileData } = await supabase
+              .from("profiles")
+              .select("*")
+              .eq("user_id", approvedPost.user_id)
+              .maybeSingle();
+            authorEmail = (profileData as any)?.email ?? null;
+          }
+
+          if (authorEmail) {
+            fetch("/api/email/approval", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                email: authorEmail,
+                name: approvedPost.authorName,
+                preview: approvedPost.content,
+                postId: approvedPost.id,
+              }),
+            }).catch(() => {});
+          }
+        } catch {
+          // email errors are non-fatal
+        }
+      }
     } catch (err: any) {
       logger.error("Approve error:", err);
       setFeedbackMessage({
@@ -1109,14 +1192,18 @@ export default function AdminDashboardPage() {
                 ? "Shayari Moderation Queue"
                 : mainSection === "events"
                 ? "Event Management Console"
-                : "Memories Management Console"}
+                : mainSection === "memories"
+                ? "Memories Management Console"
+                : "Activity Log"}
             </h1>
             <p className="text-xs text-gray-500 mt-1">
               {mainSection === "shayari"
                 ? "Review and moderate member submissions before they appear on the public feed."
                 : mainSection === "events"
                 ? "Add, edit, reschedule, or remove club events and configure registration links."
-                : "Publish visual memories, upload gallery photos, and showcase competition winners."}
+                : mainSection === "memories"
+                ? "Publish visual memories, upload gallery photos, and showcase competition winners."
+                : "A real-time audit trail of all actions — posts, events, admin changes, and deletions."}
             </p>
           </div>
 
@@ -1199,6 +1286,23 @@ export default function AdminDashboardPage() {
             <span className="text-[10px] bg-indigo-100 text-indigo-700 font-bold px-1.5 py-0.5 rounded-full">
               {adminMemories.length}
             </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setMainSection("logs");
+              setFeedbackMessage(null);
+              fetchActivityLogs(logsFilter);
+            }}
+            className={`flex items-center gap-2 px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl transition-all cursor-pointer ${
+              mainSection === "logs"
+                ? "bg-white text-zinc-800 shadow-xs"
+                : "text-gray-500 hover:text-zinc-800"
+            }`}
+          >
+            <Activity className="w-4 h-4 text-emerald-500" />
+            <span>Activity Log</span>
           </button>
         </div>
 
@@ -2405,6 +2509,123 @@ export default function AdminDashboardPage() {
                 </button>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* ================= ACTIVITY LOG SECTION ================= */}
+        {mainSection === "logs" && (
+          <div className="space-y-4">
+            {/* Filter + Refresh bar */}
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl border border-gray-200">
+                {(["all", "posts", "events", "memories", "admins"] as const).map((f) => (
+                  <button
+                    key={f}
+                    type="button"
+                    onClick={() => { setLogsFilter(f); fetchActivityLogs(f); }}
+                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg capitalize transition-all cursor-pointer ${
+                      logsFilter === f
+                        ? "bg-white text-zinc-800 shadow-xs"
+                        : "text-gray-500 hover:text-zinc-800"
+                    }`}
+                  >
+                    {f === "all" ? "All Actions" : f}
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => fetchActivityLogs(logsFilter)}
+                className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer shadow-xs"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                Refresh
+              </button>
+            </div>
+
+            {/* Log Table */}
+            {loadingLogs ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="w-6 h-6 animate-spin text-emerald-500" />
+                <span className="ml-2 text-sm text-gray-500">Loading activity logs...</span>
+              </div>
+            ) : activityLogs.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+                  <ClipboardList className="w-6 h-6 text-gray-400" />
+                </div>
+                <p className="text-sm font-medium text-gray-500">No activity logs yet.</p>
+                <p className="text-xs text-gray-400 mt-1">Activity will appear here once the SQL triggers are applied in Supabase.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-xs">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-200">
+                      <th className="text-left px-4 py-3 font-semibold text-zinc-600 whitespace-nowrap">When</th>
+                      <th className="text-left px-4 py-3 font-semibold text-zinc-600 whitespace-nowrap">Who</th>
+                      <th className="text-left px-4 py-3 font-semibold text-zinc-600 whitespace-nowrap">Action</th>
+                      <th className="text-left px-4 py-3 font-semibold text-zinc-600 whitespace-nowrap">Table</th>
+                      <th className="text-left px-4 py-3 font-semibold text-zinc-600">Description</th>
+                      <th className="text-left px-4 py-3 font-semibold text-zinc-600 whitespace-nowrap">Record ID</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {activityLogs.map((log) => {
+                      const actionColor =
+                        log.action === "INSERT"
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                          : log.action === "DELETE"
+                          ? "bg-red-50 text-red-700 border-red-200"
+                          : "bg-amber-50 text-amber-700 border-amber-200";
+                      const tableColor =
+                        log.table_name === "posts"
+                          ? "bg-sky-50 text-sky-700"
+                          : log.table_name === "events"
+                          ? "bg-purple-50 text-purple-700"
+                          : log.table_name === "admins"
+                          ? "bg-red-50 text-red-700"
+                          : "bg-indigo-50 text-indigo-700";
+
+                      return (
+                        <tr key={log.id} className="hover:bg-gray-50/80 transition-colors">
+                          {/* When */}
+                          <td className="px-4 py-3 whitespace-nowrap text-gray-500">
+                            <div>{new Date(log.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</div>
+                            <div className="text-[10px] text-gray-400">{new Date(log.created_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</div>
+                          </td>
+                          {/* Who */}
+                          <td className="px-4 py-3 max-w-[160px]">
+                            <div className="font-medium text-zinc-800 truncate">{log.user_email || "—"}</div>
+                            <div className="text-[10px] text-gray-400 font-mono truncate">{log.user_id?.slice(0, 12)}…</div>
+                          </td>
+                          {/* Action */}
+                          <td className="px-4 py-3">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${actionColor}`}>
+                              {log.action}
+                            </span>
+                          </td>
+                          {/* Table */}
+                          <td className="px-4 py-3">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold capitalize ${tableColor}`}>
+                              {log.table_name}
+                            </span>
+                          </td>
+                          {/* Description */}
+                          <td className="px-4 py-3 text-zinc-700 max-w-xs">
+                            {log.description || "—"}
+                          </td>
+                          {/* Record ID */}
+                          <td className="px-4 py-3 font-mono text-gray-400">
+                            #{log.record_id ?? "—"}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 

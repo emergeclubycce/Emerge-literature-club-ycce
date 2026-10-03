@@ -91,7 +91,7 @@ export async function syncUserProfile(user: any): Promise<UserProfile | null> {
     // 1. Fetch existing profile
     const { data: existingProfile, error: fetchError } = await supabase
       .from("profiles")
-      .select("user_id, name, photo_url, instagram")
+      .select("*")
       .eq("user_id", user.id)
       .maybeSingle();
 
