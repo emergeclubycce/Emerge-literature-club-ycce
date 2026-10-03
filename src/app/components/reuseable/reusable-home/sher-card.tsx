@@ -614,8 +614,10 @@ function SherCard({
 
       {/* ========================================================= */}
       {/* 5. CAPTION & INLINE USERNAME (INSTAGRAM STYLE)           */}
+      {/* Only shown when there is an image — text-only posts      */}
+      {/* already display the content in the poetry canvas above.  */}
       {/* ========================================================= */}
-      {caption && (
+      {caption && image && (
         <div className="px-3.5 pt-1 text-xs sm:text-[13px] text-zinc-800 leading-snug break-words">
           {/* <span className="font-bold text-zinc-900 mr-2 hover:underline cursor-pointer">
             {authorName}

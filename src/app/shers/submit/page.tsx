@@ -19,6 +19,7 @@ import {
   Bold,
   Italic,
   Underline,
+  Heading,
 } from "lucide-react";
 import Footer from "@/app/components/reuseable/reusable-home/Footer";
 
@@ -45,7 +46,7 @@ export default function SubmitShayariPage() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Apply formatting to selected text or insert formatting tags
-  const applyFormat = (tag: "b" | "i" | "u") => {
+  const applyFormat = (tag: "h" | "b" | "i" | "u") => {
     const textarea = textareaRef.current;
     if (!textarea) return;
 
@@ -55,7 +56,10 @@ export default function SubmitShayariPage() {
 
     let prefix = "";
     let suffix = "";
-    if (tag === "b") {
+    if (tag === "h") {
+      prefix = "<h>";
+      suffix = "</h>";
+    } else if (tag === "b") {
       prefix = "<b>";
       suffix = "</b>";
     } else if (tag === "i") {
@@ -344,8 +348,8 @@ export default function SubmitShayariPage() {
                   <Feather className="w-5 h-5" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold text-zinc-800">
-                    Submit a Shayari
+                  <h1 className="text-3xl font-bold text-zinc-800 leading-tight tracking-tight">
+                    Submit a <span className="italic font-bold text-sky-600">Shayari</span>
                   </h1>
                   <p className="text-xs text-gray-500">
                     Express your thoughts and share your poetry with the club.
@@ -371,8 +375,20 @@ export default function SubmitShayariPage() {
                       Shayari / Poem Content <span className="text-gray-400 font-normal">(Optional if image provided)</span>
                     </label>
 
-                    {/* Formatting Toolbar: Bold, Italic, Underline */}
-                    <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg border border-gray-200">
+                    {/* Formatting Toolbar: Heading, Bold, Italic, Underline */}
+                    <div className="flex items-center gap-0.5 bg-gray-100 p-1 rounded-lg border border-gray-200">
+                      {/* Heading button — makes selected text bigger */}
+                      <button
+                        type="button"
+                        onClick={() => applyFormat("h")}
+                        title="Heading — increases text size"
+                        className="p-1 text-zinc-600 hover:text-sky-600 hover:bg-white rounded transition-colors cursor-pointer"
+                        aria-label="Format as Heading"
+                      >
+                        <Heading className="w-3.5 h-3.5" />
+                      </button>
+                      {/* Divider */}
+                      <span className="w-px h-3.5 bg-gray-300 mx-0.5" />
                       <button
                         type="button"
                         onClick={() => applyFormat("b")}
@@ -418,7 +434,7 @@ export default function SubmitShayariPage() {
                     />
                   </div>
                   <p className="text-[11px] text-gray-400 mt-1">
-                    Select words and click <span className="font-semibold text-zinc-600">B</span>, <span className="italic text-zinc-600">I</span>, or <span className="underline text-zinc-600">U</span> to format lines.
+                    Select text then click <span className="font-bold text-zinc-600 text-xs">H</span> to make it a heading, <span className="font-semibold text-zinc-600">B</span> for bold, <span className="italic text-zinc-600">I</span> for italic, or <span className="underline text-zinc-600">U</span> to underline.
                   </p>
                 </div>
 

@@ -8,8 +8,9 @@ export interface DeletePostResult {
 }
 
 /**
- * Safely parses markdown-like bold, italic, and underline tags into React elements.
+ * Safely parses markdown-like bold, italic, underline, and heading tags into React elements.
  * Supported tags:
+ * - Heading: <h>text</h>  → renders as larger bold text
  * - Bold: **text** or <b>text</b>
  * - Italic: *text* or _text_ or <i>text</i>
  * - Underline: <u>text</u>
@@ -40,11 +41,17 @@ function parseLineFormatting(line: string): React.ReactNode[] {
   // 3. <u>...</u>
   // 4. *...*
   // 5. _..._
-  const pattern = /(<b>[\s\S]*?<\/b>|\*\*[\s\S]*?\*\*|<i>[\s\S]*?<\/i>|<u>[\s\S]*?<\/u>|\*[^\*\n]+?\*|_[^_\n]+?_)/g;
+  const pattern = /(<h>[\s\S]*?<\/h>|<b>[\s\S]*?<\/b>|\*\*[\s\S]*?\*\*|<i>[\s\S]*?<\/i>|<u>[\s\S]*?<\/u>|\*[^\*\n]+?\*|_[^_\n]+?_)/g;
   const parts = line.split(pattern);
 
   return parts.map((part, idx) => {
     if (!part) return null;
+
+    // Heading: <h>text</h> → larger bold text (for titles inside poems)
+    if (part.startsWith("<h>") && part.endsWith("</h>")) {
+      const inner = part.slice(3, -4);
+      return <span key={idx} className="text-lg font-bold leading-snug block">{parseLineFormatting(inner)}</span>;
+    }
 
     // Bold: <b>text</b> or **text**
     if (part.startsWith("<b>") && part.endsWith("</b>")) {
