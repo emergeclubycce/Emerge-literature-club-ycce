@@ -1,5 +1,6 @@
 "use client";
 
+import { logger } from "@/utils/logger";
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -247,7 +248,7 @@ function SherCard({
         if (error) throw error;
       }
     } catch (err) {
-      console.error("Failed to update like status:", err);
+      logger.error("Failed to update like status:", err);
       setIsLiked(!nextLiked); // Revert on failure
       setLikesCount((prev) => (!nextLiked ? prev + 1 : Math.max(0, prev - 1)));
     } finally {
@@ -302,7 +303,7 @@ function SherCard({
         if (error) throw error;
       }
     } catch (err) {
-      console.error("Failed to update bookmark status:", err);
+      logger.error("Failed to update bookmark status:", err);
       setIsBookmarked(!nextBookmarked); // Revert on failure
       setBookmarksCount((prev) => (!nextBookmarked ? prev + 1 : Math.max(0, prev - 1)));
     } finally {
@@ -327,7 +328,7 @@ function SherCard({
         });
         return;
       } catch (error) {
-        console.log("Share cancelled", error);
+        logger.log("Share cancelled", error);
       }
     }
 
@@ -337,7 +338,7 @@ function SherCard({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      console.log("Clipboard copy failed");
+      logger.log("Clipboard copy failed");
     }
   };
 
@@ -369,7 +370,7 @@ function SherCard({
         router.push("/shers");
       }
     } catch (err: any) {
-      console.error("Failed to delete post:", err);
+      logger.error("Failed to delete post:", err);
       setDeleteError(err.message || "Failed to delete post. Please try again.");
     } finally {
       setIsDeleting(false);
@@ -522,6 +523,8 @@ function SherCard({
           <img
             src={image}
             alt="Shayari artwork"
+            loading="eager"
+            decoding="async"
             className="overflow-hidden rounded-2xl w-full h-auto object-contain"
           />
         </div>

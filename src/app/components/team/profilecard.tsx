@@ -26,6 +26,7 @@ function ProfileCard({ name, post, index, linkedIn, instagram }: profileProb) {
           src={`/Team-Image/${index}.jpg`}
           alt="profile"
           fill
+          sizes="(max-width: 768px) 100vw, 320px"
           className={`object-cover transition-opacity duration-300 ${imgLoaded ? 'opacity-100' : 'opacity-0'}`}
           onLoad={() => setImgLoaded(true)}
         />

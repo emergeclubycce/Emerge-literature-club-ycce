@@ -1,5 +1,6 @@
 "use client";
 
+import { logger } from "@/utils/logger";
 import React, { useEffect, useState, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -185,6 +186,28 @@ export default function SubmitShayariPage() {
       return;
     }
 
+    // --- Rate limiting: max 1 submission per 60 seconds per user ---
+    try {
+      const { data: recentPost } = await supabase
+        .from("posts")
+        .select("created_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (recentPost?.created_at) {
+        const secondsSinceLast = (Date.now() - new Date(recentPost.created_at).getTime()) / 1000;
+        if (secondsSinceLast < 60) {
+          const remaining = Math.ceil(60 - secondsSinceLast);
+          setError(`Please wait ${remaining} seconds before submitting again.`);
+          return;
+        }
+      }
+    } catch {
+      // If the rate-limit check itself fails, allow submission to proceed
+    }
+
     setSubmitting(true);
     setError(null);
 
@@ -231,7 +254,7 @@ export default function SubmitShayariPage() {
               .from("post-images")
               .remove([uploadedFilePath]);
           } catch (cleanupErr) {
-            console.error("Storage cleanup failed:", cleanupErr);
+            logger.error("Storage cleanup failed:", cleanupErr);
           }
         }
         throw insertError;
@@ -240,7 +263,7 @@ export default function SubmitShayariPage() {
       // Success
       setSubmitted(true);
     } catch (err: any) {
-      console.error("Shayari submission error:", err);
+      logger.error("Shayari submission error:", err);
       setError(
         err.message || "Failed to submit your Shayari. Please try again."
       );

@@ -2,6 +2,7 @@
 
 import React from "react";
 import supabase from "@/config/supabase";
+import { logger } from "@/utils/logger";
 
 function GoogleLogin() {
   const handleGoogleLogin = async () => {
@@ -13,7 +14,7 @@ function GoogleLogin() {
       options: { redirectTo: redirectUrl },
     });
 
-    if (error) console.error("Google login error:", error);
+    if (error) logger.error("Google login error:", error);
   };
 
   return (

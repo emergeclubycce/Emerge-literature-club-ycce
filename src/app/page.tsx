@@ -1,9 +1,9 @@
 "use client"
 
-import React  from 'react'
+import React from 'react'
 import Image from 'next/image'
 import gsap from 'gsap'
-import { useEffect,useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import Maquee from './components/reuseable/reusable-home/maquee'
 
 import Loader from './components/reuseable/reusable-home/laoder'
@@ -14,8 +14,8 @@ import Timeline from './components/reuseable/reusable-home/timeline'
 import SherCard from './components/reuseable/reusable-home/sher-card'
 import { AccordionDemo } from './components/reuseable/reusable-home/accordion'
 import ClickSpark from './components/reuseable/reusable-home/reusable-clcikup-animation'
-import {useLenis} from '@/utils/lenis'
-import {ScrollTrigger} from 'gsap/dist/ScrollTrigger'
+import { useLenis } from '@/utils/lenis'
+import { ScrollTrigger } from 'gsap/dist/ScrollTrigger'
 import Link from 'next/link'
 import Footer from './components/reuseable/reusable-home/Footer'
 
@@ -24,41 +24,41 @@ gsap.registerPlugin(ScrollTrigger);
 
 
 const inter = Inter({
- subsets: ["latin"],
+  subsets: ["latin"],
   variable: '--font-inter', // should match the font name
 });
 
 
 
 function Page() {
- 
 
- useLenis()
- const cardRef = useRef<HTMLImageElement | null>(null);
-    
-  useEffect(()=>{
-    gsap.to(".parallex",{
-        y:-80,
-        duration:0.5,
-        scrollTrigger:{
-            trigger: ".landing-screen",     // element that triggers the animation
-              start:"top top" ,      // when top of box hits 30% of viewport
-            scrub: true,         // smooth scrubbing, takes 1 sec to "catch up"
-          
-        }
+
+  useLenis()
+  const cardRef = useRef<HTMLImageElement | null>(null);
+
+  useEffect(() => {
+    gsap.to(".parallex", {
+      y: -80,
+      duration: 0.5,
+      scrollTrigger: {
+        trigger: ".landing-screen",     // element that triggers the animation
+        start: "top top",      // when top of box hits 30% of viewport
+        scrub: true,         // smooth scrubbing, takes 1 sec to "catch up"
+
+      }
     })
 
-       gsap.to(".parallex2",{
-        y:80,
-        duration:0.5,
-        scrollTrigger:{
-            trigger: ".landing-screen",     // element that triggers the animation
-              start:"top top" ,      // when top of box hits 30% of viewport
-            scrub: true,         // smooth scrubbing, takes 1 sec to "catch up"
-          
-        }
+    gsap.to(".parallex2", {
+      y: 80,
+      duration: 0.5,
+      scrollTrigger: {
+        trigger: ".landing-screen",     // element that triggers the animation
+        start: "top top",      // when top of box hits 30% of viewport
+        scrub: true,         // smooth scrubbing, takes 1 sec to "catch up"
+
+      }
     })
-    
+
   })
 
 
@@ -66,135 +66,135 @@ function Page() {
   return (
 
     <>
-   <Loader/>
-   
-   
-   {/* page1 */}
-   
-<div className='min-h-screen w-full'>
-   <ClickSpark
-  sparkColor='#00A6F4'
-  sparkSize={10}
-  sparkRadius={15}
-  sparkCount={8}
-  duration={400}
->
-  
-  <main className='no-select min-h-screen  w-full overflow-hidden scrollbar-hide pb-10 '>
+      <Loader />
+
+
+      {/* page1 */}
+
+      <div className='min-h-screen w-full'>
+        <ClickSpark
+          sparkColor='#00A6F4'
+          sparkSize={10}
+          sparkRadius={15}
+          sparkCount={8}
+          duration={400}
+        >
+
+          <main className='no-select min-h-screen  w-full overflow-hidden scrollbar-hide pb-10 '>
 
 
 
-   <div className='landing-screen relative h-screen  w-full flex flex-col items-center justify-center text-black font-bold  overflow-hidden'>
-        <Image ref={cardRef}  draggable={false}  src='/image/cardborad.png' alt='logo' width={700} height={200} className=' parallex image absolute z-30 md:-bottom-20 md:-left-50 bottom-10 -left-50   '/>
-        <Image  draggable={false} src='/image/cardborad.png' alt='logo' width={700} height={200} className='image absolute  md:-top-30 md:-left-60  -top-10 -left-45 z-30 md:z-10  '/>
-        <Image  draggable={false} src='/image/cardborad.png' alt='logo' width={700} height={200} className='image absolute rotate-180 -bottom-10 -right-40  z-30 md:z-10 md:-bottom-20 md:right-10'/>
-         <Image  draggable={false} src='/image/cardborad.png' alt='logo' width={700} height={200} className='parallex2 image absolute rotate-0 top-0 left-260  z-40 md:z-30 md:-bottom-20 md:right-10'/>
-       
-     <div className='screen-wrap  h-[80%]  flex-col w-[96%] md:w-[80%] z-20 flex items-center justify-center shadow-xl '>
-          <Image ref={cardRef} draggable={false} src='/image/Litraure-logo.png' alt='logo' width={700} height={200} className='parallex'/>
-         <Link href={"/shers"}>
-           <button className={` ${inter.className} px-3 py-2  text-zinc-600 border-2 border-gray-400 bg-white-500 font-medium  mt-2 rounded-2xl  flex gap-2  `}>Get Started  <MoveRight className='group-hover:translate-x-1 transition-all'/></button>
-         </Link>
-     </div>  
-       
-       <Link href={"/about-us"}>
-      <Maquee />
-       </Link>
-    </div>
+            <div className='landing-screen relative h-screen  w-full flex flex-col items-center justify-center text-black font-bold  overflow-hidden'>
+              <Image ref={cardRef} draggable={false} src='/image/cardborad.png' alt='logo' width={700} height={200} className=' parallex image absolute z-30 md:-bottom-20 md:-left-50 bottom-10 -left-50   ' />
+              <Image draggable={false} src='/image/cardborad.png' alt='logo' width={700} height={200} className='image absolute  md:-top-30 md:-left-60  -top-10 -left-45 z-30 md:z-10  ' />
+              <Image draggable={false} src='/image/cardborad.png' alt='logo' width={700} height={200} className='image absolute rotate-180 -bottom-10 -right-40  z-30 md:z-10 md:-bottom-20 md:right-10' />
+              <Image draggable={false} src='/image/cardborad.png' alt='logo' width={700} height={200} className='parallex2 image absolute rotate-0 top-0 left-260  z-40 md:z-30 md:-bottom-20 md:right-10' />
+
+              <div className='screen-wrap  h-[80%]  flex-col w-[96%] md:w-[80%] z-20 flex items-center justify-center shadow-xl '>
+                <Image ref={cardRef} draggable={false} src='/image/Litraure-logo.png' alt='logo' width={700} height={200} className='parallex' />
+                <Link href={"/shers"}>
+                  <button className={` ${inter.className} px-3 py-2  text-zinc-600 border-2 border-gray-400 bg-white-500 font-medium  mt-2 rounded-2xl  flex gap-2  `}>Get Started  <MoveRight className='group-hover:translate-x-1 transition-all' /></button>
+                </Link>
+              </div>
+
+              <Link href={"/about-us"}>
+                <Maquee />
+              </Link>
+            </div>
 
 
 
 
-    {/* Page 2 */}
+            {/* Page 2 */}
 
-      <div className={` ${inter.className} min-h-[100vh] w-full  flex flex-col z-10   overflow-hidden items-center py-30 justify-center text-black font-bold `}>
-      
-        <div>
-         <h2 className={` ${inter.className} text-4xl text-gray-500 text-center`}>Our <span className='text-sky-500'>Events</span> & Activities</h2>
-         <p className='font-light text-center'>A glimpse of our Literature, passion, and creative expression Emerge Literature Club, YCCE.</p>
-        </div>
-       <LayoutGridDemo/> 
-       <Link href={"/event"}>
-       
-           <div className="group h-full w-full  flex items-center justify-center gap-1 cursor-pointer">
-        <h1 className=" relative font-medium before:content-[''] before:absolute before:bottom-0 before:left-0 before:w-0 before:h-[1px] before:bg-sky-500 before:rounded-2xl hover:before:w-full before:transition-all  text-gray-600 ">View All Event</h1>
-       <MoveRight className='group-hover:translate-x-1 transition-all'/>
-        </div>   
-       </Link>
-     </div>
+            <div className={` ${inter.className} min-h-[100vh] w-full  flex flex-col z-10   overflow-hidden items-center py-30 justify-center text-black font-bold `}>
 
-    {/* Page 3 */}
-    <div className='min-h-screen w-full '>
-         <div className={` ${inter.className} font-bold mb-40`}>
-         <h2 className={` ${inter.className} text-4xl text-gray-500 text-center font-bold`}>Our <span className='text-sky-500 '>Timeline</span> </h2>
-         <p className='font-medium text-gray-500  text-center'>A journey of poetic milestones and creative expression at Emerge Literature Club, YCCE.</p>
-        </div>
-         <Timeline/>
-    </div>
+              <div>
+                <h2 className={` ${inter.className} text-4xl text-gray-500 text-center`}>Our <span className='text-sky-500'>Events</span> & Activities</h2>
+                <p className='font-light text-center'>A glimpse of our Literature, passion, and creative expression Emerge Literature Club, YCCE.</p>
+              </div>
+              <LayoutGridDemo />
+              <Link href={"/event"}>
 
-    <div className='h-screen w-full relative flex items-center gap-3 justify-center mt-20'>
-           <Image draggable={false} src='/image/paper.png' alt='logo'  width={1100} height={600}   className=' absolute hidden md:block' />
-           <Image draggable={false} src='/image/paper.png' alt='logo'  fill  className=' absolute md:hidden block' />
+                <div className="group h-full w-full  flex items-center justify-center gap-1 cursor-pointer">
+                  <h1 className=" relative font-medium before:content-[''] before:absolute before:bottom-0 before:left-0 before:w-0 before:h-[1px] before:bg-sky-500 before:rounded-2xl hover:before:w-full before:transition-all  text-gray-600 ">View All Event</h1>
+                  <MoveRight className='group-hover:translate-x-1 transition-all' />
+                </div>
+              </Link>
+            </div>
 
-           
-           <div className='h-full w-full flex  flex-col items-center justify-center z-20'>
-             <div className='h-15 w-15 rounded-full overflow-hidden border-[1px] border-gray-400  '>
-                      <Image src='/image/logo.png' alt='logo' width={100} height={100} />
-                     </div>
+            {/* Page 3 */}
+            <div className='min-h-screen w-full '>
+              <div className={` ${inter.className} font-bold mb-40`}>
+                <h2 className={` ${inter.className} text-4xl text-gray-500 text-center font-bold`}>Our <span className='text-sky-500 '>Timeline</span> </h2>
+                <p className='font-medium text-gray-500  text-center'>A journey of poetic milestones and creative expression at Emerge Literature Club, YCCE.</p>
+              </div>
+              <Timeline />
+            </div>
+
+            <div className='h-screen w-full relative flex items-center gap-3 justify-center mt-20'>
+              <Image draggable={false} src='/image/paper.png' alt='logo' width={1100} height={600} className=' absolute hidden md:block' />
+              <Image draggable={false} src='/image/paper.png' alt='logo' fill className=' absolute md:hidden block' />
+
+
+              <div className='h-full w-full flex  flex-col items-center justify-center z-20'>
+                <div className='h-15 w-15 rounded-full overflow-hidden border-[1px] border-gray-400  '>
+                  <Image src='/image/logo.png' alt='logo' width={100} height={100} />
+                </div>
                 <h2 className={`emerge text-2xl  mt-2  md:text-4xl text-black text-center`}>About</h2>
                 <p className={`${inter.className} font-medium text-xl md:text-2xl mt-3 text-center mb-2`}> Emerge <span>Literature</span> Club | YCCE.</p>
 
-                <p className={` ${inter.className} text-center text-sm md:text-[16px] px-3 md:px-0 md:text-md w-80 md:w-[40rem] mt-3`}> 
+                <p className={` ${inter.className} text-center text-sm md:text-[16px] px-3 md:px-0 md:text-md w-80 md:w-[40rem] mt-3`}>
                   Emerge Literature Club is the heart of poetic expression at YCCE a space where words breathe, emotions flow, and creativity thrives. We celebrate the art of storytelling through verses, spoken word, and lyrical narratives. From soulful open mics to powerful slam Literature events, we give voice to the thoughts that often go unspoken.
                 </p>
-                 <p className={` ${inter.className} text-center text-sm md:text-[16px]  w-80 md:w-[40rem] mt-10`}> 
-                   Whether you re a seasoned poet or just beginning to rhyme your thoughts, Emerge is your stage to grow, express, and inspire. Join us, and let your words emerge.
+                <p className={` ${inter.className} text-center text-sm md:text-[16px]  w-80 md:w-[40rem] mt-10`}>
+                  Whether you re a seasoned poet or just beginning to rhyme your thoughts, Emerge is your stage to grow, express, and inspire. Join us, and let your words emerge.
                 </p>
-<Link href={"/about-us"}>
+                <Link href={"/about-us"}>
 
-                   <div className="group flex items-center justify-center mt-10 gap-1 cursor-pointer">
-        <h1 className=" relative font-medium before:content-[''] before:absolute before:bottom-0 before:left-0 before:w-0 before:h-[2px] before:bg-sky-500 before:rounded-2xl hover:before:w-full before:transition-all  text-gray-600 ">Know More About Us</h1>
-       <MoveRight className='group-hover:translate-x-1 transition-all'/>
-        </div>   
-</Link>
-           </div>   
-    </div>
-
-
-   <div className='h-screen w-full relative flex items-center gap-3 justify-center mt-20'>
-              
-           <div className='h-full w-full flex  flex-col items-center justify-center z-20'>
-             <h2 className={` ${inter.className} text-3xl md:text-4xl text-gray-500 text-center font-bold mb-10`}>Checkout Our <span className='text-sky-500 '>Sher-Shayari</span> Section </h2>
-             <SherCard writter={"emerge"} image={"/storage/1.jpg"} caption={"The Grandstand 5.0 – Open Mic Final Round, held on 22nd September 2025 at the CCC Auditorium, featured 25 performers selected from 100 participants. Organized by the EMERGE Literature Club of YCCE, the event showcased a vibrant mix of shayari, stand-up, and other performances. Judge Dr. Arvinder Kaur provided motivating feedback, encouraging participants to refine their craft. The program successfully promoted creativity, confidence, and community, reflecting EMERGE’s mission to nurture literary and artistic talent at YCCE."} idx={1} name='grandstand' />
-
-        <Link  href={"/shers"}>
-                   <div className="group flex items-center justify-center mt-10 gap-1 cursor-pointer">
-        <h1 className=" relative font-medium before:content-[''] before:absolute before:bottom-0 before:left-0 before:w-0 before:h-[2.5px] before:bg-sky-500 before:rounded-2xl hover:before:w-full before:transition-all  text-gray-600 ">See Shers Section</h1>
-       <MoveRight className='group-hover:translate-x-1 transition-all'/>
-        </div>   
-        </Link>
-           </div>   
-    </div>
-
-
-      <div className='h-[100vh] w-full relative flex flex-col items-center gap-3 p-5 mt-40 md:p-30 justify-start md:mt-20'>
-            <h2 className={` ${inter.className} text-4xl text-gray-500 text-center font-bold `}>Frequently Asked  <span className='text-sky-500 '>Questions</span>  </h2>
-            <div className='h-full w-full flex items-start mt-20 justify-center'>
-           <AccordionDemo/>
-
+                  <div className="group flex items-center justify-center mt-10 gap-1 cursor-pointer">
+                    <h1 className=" relative font-medium before:content-[''] before:absolute before:bottom-0 before:left-0 before:w-0 before:h-[2px] before:bg-sky-500 before:rounded-2xl hover:before:w-full before:transition-all  text-gray-600 ">Know More About Us</h1>
+                    <MoveRight className='group-hover:translate-x-1 transition-all' />
+                  </div>
+                </Link>
+              </div>
             </div>
-    </div>
 
 
-  <Footer/>
+            <div className='h-screen w-full relative flex items-center gap-3 justify-center mt-20'>
+
+              <div className='h-full w-full flex  flex-col items-center justify-center z-20'>
+                <h2 className={` ${inter.className} text-3xl md:text-4xl text-gray-500 text-center font-bold mb-10`}>Checkout Our <span className='text-sky-500 '>Sher-Shayari</span> Section </h2>
+                <SherCard writter={"emerge"} image={"/storage/1.jpg"} caption={"The Grandstand 5.0 – Open Mic Final Round, held on 22nd September 2025 at the CCC Auditorium, featured 25 performers selected from 100 participants. Organized by the EMERGE Literature Club of YCCE, the event showcased a vibrant mix of shayari, stand-up, and other performances. Judge Dr. Arvinder Kaur provided motivating feedback, encouraging participants to refine their craft. The program successfully promoted creativity, confidence, and community, reflecting EMERGE’s mission to nurture literary and artistic talent at YCCE."} idx={1} name='grandstand' />
+
+                <Link href={"/shers"}>
+                  <div className="group flex items-center justify-center mt-10 gap-1 cursor-pointer">
+                    <h1 className=" relative font-medium before:content-[''] before:absolute before:bottom-0 before:left-0 before:w-0 before:h-[2.5px] before:bg-sky-500 before:rounded-2xl hover:before:w-full before:transition-all  text-gray-600 ">See Shers Section</h1>
+                    <MoveRight className='group-hover:translate-x-1 transition-all' />
+                  </div>
+                </Link>
+              </div>
+            </div>
 
 
-</main>
+            <div className='h-[100vh] w-full relative flex flex-col items-center gap-3 p-5 mt-40 md:p-30 justify-start md:mt-20'>
+              <h2 className={` ${inter.className} text-4xl text-gray-500 text-center font-bold `}>Frequently Asked  <span className='text-sky-500 '>Questions</span>  </h2>
+              <div className='h-full w-full flex items-start mt-20 justify-center'>
+                <AccordionDemo />
 
-  
-</ClickSpark>
+              </div>
+            </div>
 
-</div>
+
+            <Footer />
+
+
+          </main>
+
+
+        </ClickSpark>
+
+      </div>
 
 
 

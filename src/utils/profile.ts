@@ -1,3 +1,4 @@
+import { logger } from "@/utils/logger";
 import supabase from "@/config/supabase";
 
 export interface UserProfile {
@@ -95,7 +96,7 @@ export async function syncUserProfile(user: any): Promise<UserProfile | null> {
       .maybeSingle();
 
     if (fetchError) {
-      console.warn("Notice checking user profile:", fetchError.message);
+      logger.warn("Notice checking user profile:", fetchError.message);
       return null;
     }
 
@@ -141,14 +142,14 @@ export async function syncUserProfile(user: any): Promise<UserProfile | null> {
         .maybeSingle();
 
       if (insertError) {
-        console.warn("Notice inserting initial profile:", insertError.message);
+        logger.warn("Notice inserting initial profile:", insertError.message);
         return newRecord as UserProfile;
       }
 
       return (inserted || newRecord) as UserProfile;
     }
   } catch (err) {
-    console.warn("syncUserProfile error:", err);
+    logger.warn("syncUserProfile error:", err);
     return null;
   }
 }

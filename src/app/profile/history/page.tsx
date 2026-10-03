@@ -1,5 +1,6 @@
 "use client";
 
+import { logger } from "@/utils/logger";
 import React, { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -88,7 +89,7 @@ export default function ProfileHistoryPage() {
           setAuthChecking(false);
         }
       } catch (err) {
-        console.warn("Auth check error:", err);
+        logger.warn("Auth check error:", err);
         if (isMounted) router.push("/auth/login");
       }
     }
@@ -285,7 +286,7 @@ export default function ProfileHistoryPage() {
 
       setPosts(formatted);
     } catch (err: any) {
-      console.error("Error loading activity:", err);
+      logger.error("Error loading activity:", err);
       setError("Unable to load activity right now. Please try again later.");
     } finally {
       setLoadingPosts(false);

@@ -1,5 +1,6 @@
 "use client";
 
+import { logger } from "@/utils/logger";
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { Inter } from "next/font/google";
 import Image from "next/image";
@@ -116,7 +117,7 @@ export default function EventsPage() {
         }
       }
     } catch (err: any) {
-      console.error("Failed to load events from Supabase:", err);
+      logger.error("Failed to load events from Supabase:", err);
       setError("Unable to load events at this moment. Please check back shortly.");
     } finally {
       setLoading(false);

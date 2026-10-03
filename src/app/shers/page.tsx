@@ -1,5 +1,6 @@
 "use client";
 
+import { logger } from "@/utils/logger";
 import React, { useEffect, useState, useCallback, Suspense } from "react";
 import { Inter } from "next/font/google";
 import Link from "next/link";
@@ -247,7 +248,7 @@ function ShersContent() {
 
         setPosts(formatted);
       } catch (err: any) {
-        console.error("Error fetching approved shers:", err);
+        logger.error("Error fetching approved shers:", err);
         setError(
           "Unable to load the Shayari feed right now. Please try again later."
         );

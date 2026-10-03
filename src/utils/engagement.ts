@@ -1,3 +1,4 @@
+import { logger } from "@/utils/logger";
 import supabase from "@/config/supabase";
 
 export interface PostEngagement {
@@ -84,7 +85,7 @@ export async function fetchPostEngagement(
       });
     }
   } catch (err) {
-    console.warn("Engagement counts query notice:", err);
+    logger.warn("Engagement counts query notice:", err);
   }
 
   return result;

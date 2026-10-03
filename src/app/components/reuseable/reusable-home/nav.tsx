@@ -1,5 +1,6 @@
 "use client";
 
+import { logger } from "@/utils/logger";
 import React, { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import {
@@ -178,7 +179,7 @@ function Nav() {
         if (!isMounted) return;
 
         if (error) {
-          console.warn(
+          logger.warn(
             "Supabase auth session check notice:",
             error.message
           );
@@ -200,7 +201,7 @@ function Nav() {
                 scope: "local",
               })
               .catch((e) => {
-                console.warn(
+                logger.warn(
                   "Local signOut notice:",
                   e
                 );
@@ -220,7 +221,7 @@ function Nav() {
         );
       })
       .catch((err) => {
-        console.warn(
+        logger.warn(
           "Auth getUser exception handled:",
           err
         );
@@ -280,7 +281,7 @@ function Nav() {
         }
       })
       .catch((err) => {
-        console.warn(
+        logger.warn(
           "Notice syncing profile:",
           err
         );
@@ -496,7 +497,7 @@ function Nav() {
     try {
       await supabase.auth.signOut();
     } catch (err) {
-      console.error(
+      logger.error(
         "Logout failed:",
         err
       );

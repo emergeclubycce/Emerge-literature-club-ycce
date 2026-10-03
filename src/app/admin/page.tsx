@@ -1,5 +1,6 @@
 "use client";
 
+import { logger } from "@/utils/logger";
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -225,7 +226,7 @@ export default function AdminDashboardPage() {
           setAuthChecking(false);
         }
       } catch (err) {
-        console.error("Admin check failed:", err);
+        logger.error("Admin check failed:", err);
         if (isMounted) {
           setIsAdmin(false);
           setAuthChecking(false);
@@ -310,7 +311,7 @@ export default function AdminDashboardPage() {
           setPosts(formatted);
         }
       } catch (err: any) {
-        console.error("Error fetching posts for moderation:", err);
+        logger.error("Error fetching posts for moderation:", err);
         if (isMounted) {
           setFeedbackMessage({
             type: "error",
@@ -345,7 +346,7 @@ export default function AdminDashboardPage() {
       if (error) throw error;
       setAdminEvents(data || []);
     } catch (err: any) {
-      console.error("Failed to load admin events:", err);
+      logger.error("Failed to load admin events:", err);
       setFeedbackMessage({
         type: "error",
         text: err.message || "Failed to load events.",
@@ -381,7 +382,7 @@ export default function AdminDashboardPage() {
 
       setAdminMemories(formatted);
     } catch (err: any) {
-      console.error("Failed to load admin memories:", err);
+      logger.error("Failed to load admin memories:", err);
       setFeedbackMessage({
         type: "error",
         text: err.message || "Failed to load memories.",
@@ -419,7 +420,7 @@ export default function AdminDashboardPage() {
         text: `Post #${postId} has been approved successfully!`,
       });
     } catch (err: any) {
-      console.error("Approve error:", err);
+      logger.error("Approve error:", err);
       setFeedbackMessage({
         type: "error",
         text: err.message || "Failed to approve post. Please try again.",
@@ -450,7 +451,7 @@ export default function AdminDashboardPage() {
         text: `Post #${postId} has been rejected.`,
       });
     } catch (err: any) {
-      console.error("Reject error:", err);
+      logger.error("Reject error:", err);
       setFeedbackMessage({
         type: "error",
         text: err.message || "Failed to reject post. Please try again.",
@@ -601,7 +602,7 @@ export default function AdminDashboardPage() {
       setEditingEvent(null);
       fetchAdminEvents();
     } catch (err: any) {
-      console.error("Save event error:", err);
+      logger.error("Save event error:", err);
       setEventFormError(err.message || "Failed to save event. Please check inputs.");
     } finally {
       setEventFormSaving(false);
@@ -634,7 +635,7 @@ export default function AdminDashboardPage() {
             await supabase.storage.from("event-images").remove([rawPath]);
           }
         } catch (cleanupErr) {
-          console.warn("Storage cleanup notice:", cleanupErr);
+          logger.warn("Storage cleanup notice:", cleanupErr);
         }
       }
 
@@ -646,7 +647,7 @@ export default function AdminDashboardPage() {
       setDeletingEvent(null);
       fetchAdminEvents();
     } catch (err: any) {
-      console.error("Delete event error:", err);
+      logger.error("Delete event error:", err);
       setDeleteEventError(err.message || "Failed to delete event. Please try again.");
     } finally {
       setDeleteEventLoading(false);
@@ -702,7 +703,7 @@ export default function AdminDashboardPage() {
         setMemoryWinners([]);
       }
     } catch (fetchErr) {
-      console.error("Failed to load memory photos/winners:", fetchErr);
+      logger.error("Failed to load memory photos/winners:", fetchErr);
     }
   };
 
@@ -767,7 +768,7 @@ export default function AdminDashboardPage() {
       setMemoryPhotos(pData || []);
       fetchAdminMemories();
     } catch (err: any) {
-      console.error("Gallery upload error:", err);
+      logger.error("Gallery upload error:", err);
       setMemoryFormError(err.message || "Failed to upload one or more photos.");
     } finally {
       setUploadingPhotos(false);
@@ -793,14 +794,14 @@ export default function AdminDashboardPage() {
             await supabase.storage.from("memory-images").remove([path]);
           }
         } catch (sErr) {
-          console.warn("Storage delete notice:", sErr);
+          logger.warn("Storage delete notice:", sErr);
         }
       }
 
       setMemoryPhotos((prev) => prev.filter((p) => p.id !== photoId));
       fetchAdminMemories();
     } catch (err: any) {
-      console.error("Failed to delete photo:", err);
+      logger.error("Failed to delete photo:", err);
       setMemoryFormError(err.message || "Failed to delete photo.");
     }
   };
@@ -860,7 +861,7 @@ export default function AdminDashboardPage() {
       setNewWinnerDesc("");
       setNewWinnerFile(null);
     } catch (err: any) {
-      console.error("Failed to add winner:", err);
+      logger.error("Failed to add winner:", err);
       setMemoryFormError(err.message || "Failed to add winner.");
     } finally {
       setAddingWinner(false);
@@ -885,13 +886,13 @@ export default function AdminDashboardPage() {
             await supabase.storage.from("memory-images").remove([path]);
           }
         } catch (sErr) {
-          console.warn("Storage winner delete notice:", sErr);
+          logger.warn("Storage winner delete notice:", sErr);
         }
       }
 
       setMemoryWinners((prev) => prev.filter((w) => w.id !== winnerId));
     } catch (err: any) {
-      console.error("Failed to delete winner:", err);
+      logger.error("Failed to delete winner:", err);
       setMemoryFormError(err.message || "Failed to remove winner.");
     }
   };
@@ -981,7 +982,7 @@ export default function AdminDashboardPage() {
       setEditingMemory(null);
       fetchAdminMemories();
     } catch (err: any) {
-      console.error("Save memory error:", err);
+      logger.error("Save memory error:", err);
       setMemoryFormError(err.message || "Failed to save memory.");
     } finally {
       setMemoryFormSaving(false);
@@ -1028,7 +1029,7 @@ export default function AdminDashboardPage() {
         try {
           await supabase.storage.from("memory-images").remove(storagePathsToRemove);
         } catch (cleanupErr) {
-          console.warn("Storage cleanup note:", cleanupErr);
+          logger.warn("Storage cleanup note:", cleanupErr);
         }
       }
 
@@ -1040,7 +1041,7 @@ export default function AdminDashboardPage() {
       setDeletingMemory(null);
       fetchAdminMemories();
     } catch (err: any) {
-      console.error("Delete memory error:", err);
+      logger.error("Delete memory error:", err);
       setDeleteMemoryError(err.message || "Failed to delete memory.");
     } finally {
       setDeleteMemoryLoading(false);
@@ -1357,6 +1358,7 @@ export default function AdminDashboardPage() {
                               src={post.image_url}
                               alt="Shayari artwork thumbnail"
                               fill
+                              sizes="176px"
                               unoptimized
                               className="object-cover group-hover:scale-105 transition-transform duration-300"
                             />
@@ -1533,6 +1535,7 @@ export default function AdminDashboardPage() {
                           src={ev.image_url || "/image/logo.png"}
                           alt={ev.title}
                           fill
+                          sizes="80px"
                           unoptimized={ev.image_url?.startsWith("http")}
                           className="object-cover"
                         />
@@ -1692,6 +1695,7 @@ export default function AdminDashboardPage() {
                             src={mem.cover_image_url || "/image/logo.png"}
                             alt={mem.title}
                             fill
+                            sizes="96px"
                             unoptimized={mem.cover_image_url?.startsWith("http")}
                             className="object-cover"
                           />
@@ -1870,6 +1874,7 @@ export default function AdminDashboardPage() {
                           src={eventPosterPreview}
                           alt="Poster preview"
                           fill
+                          sizes="64px"
                           unoptimized={eventPosterPreview.startsWith("blob:") || eventPosterPreview.startsWith("http")}
                           className="object-cover"
                         />
@@ -2060,6 +2065,7 @@ export default function AdminDashboardPage() {
                           src={memoryCoverPreview}
                           alt="Cover preview"
                           fill
+                          sizes="80px"
                           unoptimized={memoryCoverPreview.startsWith("blob:") || memoryCoverPreview.startsWith("http")}
                           className="object-cover"
                         />
@@ -2168,6 +2174,7 @@ export default function AdminDashboardPage() {
                                     src={w.image_url}
                                     alt={w.name}
                                     fill
+                                    sizes="40px"
                                     unoptimized={w.image_url.startsWith("http")}
                                     className="object-cover"
                                   />

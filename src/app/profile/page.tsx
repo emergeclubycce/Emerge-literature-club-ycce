@@ -1,5 +1,6 @@
 "use client";
 
+import { logger } from "@/utils/logger";
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -9,7 +10,28 @@ import supabase from "../../config/supabase";
 import { User, Mail, Instagram, Image as ImageIcon, Save, ArrowLeft, CheckCircle2, AlertCircle, Loader2, History } from "lucide-react";
 import Footer from "@/app/components/reuseable/reusable-home/Footer";
 import { syncUserProfile, getAvatarFromUser, getNameFromUser } from "@/utils/profile";
-import {motion , AnimatePresence} from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion';
+
+/** Validates that a photo URL is a proper http(s) URL */
+function isValidImageUrl(url: string): boolean {
+  if (!url.trim()) return true; // empty is allowed (clears the photo)
+  try {
+    const parsed = new URL(url.trim());
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:';
+  } catch {
+    return false;
+  }
+}
+
+/** Normalises an instagram value to either @handle or a full https URL */
+function sanitizeInstagram(val: string): string {
+  const v = val.trim();
+  if (!v) return '';
+  if (v.startsWith('https://instagram.com/') || v.startsWith('https://www.instagram.com/')) return v;
+  if (v.startsWith('@')) return v;
+  if (v.startsWith('http')) return ''; // reject non-instagram http URLs
+  return `@${v}`;
+}
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
@@ -68,7 +90,7 @@ export default function ProfilePage() {
           setInstagram("");
         }
       } catch (err) {
-        console.error("Error loading user profile:", err);
+        logger.error("Error loading user profile:", err);
         if (isMounted) router.push("/auth/login");
       } finally {
         if (isMounted) setLoading(false);
@@ -85,6 +107,13 @@ export default function ProfilePage() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+
+    // --- Input validation ---
+    if (!isValidImageUrl(photoUrl)) {
+      setMessage({ type: "error", text: "Photo URL must start with http:// or https://" });
+      return;
+    }
+    const cleanInstagram = sanitizeInstagram(instagram);
 
     setSaving(true);
     setMessage(null);
@@ -105,7 +134,7 @@ export default function ProfilePage() {
           .update({
             name: name.trim(),
             photo_url: photoUrl.trim(),
-            instagram: instagram.trim(),
+            instagram: cleanInstagram,
             updated_at: new Date().toISOString(),
           })
           .eq("user_id", user.id);
@@ -115,7 +144,7 @@ export default function ProfilePage() {
           user_id: user.id,
           name: name.trim(),
           photo_url: photoUrl.trim(),
-          instagram: instagram.trim(),
+          instagram: cleanInstagram,
         });
         updateError = error;
       }
@@ -127,7 +156,7 @@ export default function ProfilePage() {
         text: "Profile updated successfully!",
       });
     } catch (err: any) {
-      console.error("Error saving profile:", err);
+      logger.error("Error saving profile:", err);
       setMessage({
         type: "error",
         text: err.message || "Failed to update profile. Please try again.",

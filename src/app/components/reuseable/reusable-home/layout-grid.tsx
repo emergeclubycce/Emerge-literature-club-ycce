@@ -1,7 +1,6 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
-import { LayoutGrid } from "../reusable-home/layout";
-import { number } from "motion";
+import { LayoutGrid } from "./layout-component";
 
 export function LayoutGridDemo() {
   return (

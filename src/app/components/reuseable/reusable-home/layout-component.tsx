@@ -1,12 +1,12 @@
 "use client";
-import React,{useState} from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { cn } from "../../../lib/utils";
 import Image from "next/image";
 
 type Card = {
   id: number;
-  content?:  string;
+  content?: string;
   className: string;
   thumbnail?: string;
   number?: number;
@@ -23,14 +23,14 @@ export const LayoutGrid = ({ cards }: { cards: Card[] }) => {
             )}
             layoutId={`card-${card.id}`}
           >
-            <ImageComponent  card={card} number={card.number ?? 0} />
-            
+            <ImageComponent card={card} number={card.number ?? 0} />
           </motion.div>
         </div>
       ))}
     </div>
   );
 };
+
 const ImageComponent = ({ card }: { card: Card; number?: number }) => {
   const [isLoading, setIsLoading] = useState(true);
 
@@ -43,20 +43,19 @@ const ImageComponent = ({ card }: { card: Card; number?: number }) => {
 
       {typeof card.thumbnail === "string" && card.thumbnail.startsWith("") && (
         <Image
-        draggable={false}
+          draggable={false}
           src={card.thumbnail}
           fill
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           className={cn(
             "object-cover transition-opacity duration-700",
             isLoading ? "opacity-0" : "opacity-100"
           )}
           alt="card image"
           priority
-          onLoadingComplete={() => setIsLoading(false)}
+          onLoad={() => setIsLoading(false)}
         />
       )}
     </div>
   );
 };
-
-

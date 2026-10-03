@@ -1,3 +1,4 @@
+import { logger } from "@/utils/logger";
 import supabase from "@/config/supabase";
 import React from "react";
 
@@ -211,13 +212,13 @@ export async function deleteShayariPost(
           }
         }
       } catch (storageErr) {
-        console.warn("Storage cleanup notice (non-fatal):", storageErr);
+        logger.warn("Storage cleanup notice (non-fatal):", storageErr);
       }
     }
 
     return { success: true };
   } catch (err: any) {
-    console.error("deleteShayariPost caught error:", err);
+    logger.error("deleteShayariPost caught error:", err);
     return {
       success: false,
       error: err.message || "An unexpected error occurred while deleting the post.",
