@@ -1,7 +1,7 @@
 "use client";
 
 import { logger } from "@/utils/logger";
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -19,9 +19,16 @@ import {
   Bold,
   Italic,
   Underline,
-  Heading,
 } from "lucide-react";
+import clsx from "clsx";
 import Footer from "@/app/components/reuseable/reusable-home/Footer";
+import { serializeEditorToFormattedText } from "@/utils/posts";
+import {
+  validateImageFile,
+  optimizeImage,
+  formatFileSize,
+  type OptimizedImageResult,
+} from "@/utils/imageOptimizer";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -35,77 +42,96 @@ export default function SubmitShayariPage() {
   const [user, setUser] = useState<any>(null);
 
   const [content, setContent] = useState("");
+  const [rawText, setRawText] = useState("");
+  const [isBold, setIsBold] = useState(false);
+  const [isItalic, setIsItalic] = useState(false);
+  const [isUnderline, setIsUnderline] = useState(false);
+
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [optimizedResult, setOptimizedResult] = useState<OptimizedImageResult | null>(null);
+  const [optimizing, setOptimizing] = useState(false);
+  const [optimizingStatus, setOptimizingStatus] = useState<string | null>(null);
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
 
-  // Apply formatting to selected text or insert formatting tags
-  const applyFormat = (tag: "h" | "b" | "i" | "u") => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-
-    const start = textarea.selectionStart ?? 0;
-    const end = textarea.selectionEnd ?? 0;
-    const selectedText = content.substring(start, end);
-
-    let prefix = "";
-    let suffix = "";
-    if (tag === "h") {
-      prefix = "<h>";
-      suffix = "</h>";
-    } else if (tag === "b") {
-      prefix = "<b>";
-      suffix = "</b>";
-    } else if (tag === "i") {
-      prefix = "<i>";
-      suffix = "</i>";
-    } else if (tag === "u") {
-      prefix = "<u>";
-      suffix = "</u>";
+  // Check which formatting commands are active at the current cursor / selection
+  const updateActiveFormats = useCallback(() => {
+    if (typeof document === "undefined") return;
+    try {
+      setIsBold(document.queryCommandState("bold"));
+      setIsItalic(document.queryCommandState("italic"));
+      setIsUnderline(document.queryCommandState("underline"));
+    } catch {
+      // Ignore if document is unavailable or selection is outside
     }
+  }, []);
 
-    let newContent = "";
-    let newCursorPos = 0;
-
-    if (selectedText.length > 0) {
-      // Wrap selected text
-      newContent =
-        content.substring(0, start) +
-        prefix +
-        selectedText +
-        suffix +
-        content.substring(end);
-      newCursorPos = end + prefix.length + suffix.length;
-    } else {
-      // Insert empty tags and place cursor inside
-      newContent =
-        content.substring(0, start) + prefix + suffix + content.substring(end);
-      newCursorPos = start + prefix.length;
+  // Serialize the editor DOM to canonical formatting and plainText
+  const syncState = useCallback(() => {
+    if (!editorRef.current) return;
+    const { formatted, plainText } = serializeEditorToFormattedText(editorRef.current);
+    setContent(formatted);
+    setRawText(plainText);
+    if (error && (plainText.length > 0 || selectedFile)) {
+      setError(null);
     }
+    updateActiveFormats();
+  }, [error, selectedFile, updateActiveFormats]);
 
-    setContent(newContent);
-    if (error) setError(null);
-
-    // Restore focus and cursor position smoothly
-    setTimeout(() => {
-      if (textareaRef.current) {
-        textareaRef.current.focus();
-        if (selectedText.length > 0) {
-          textareaRef.current.setSelectionRange(newCursorPos, newCursorPos);
-        } else {
-          textareaRef.current.setSelectionRange(
-            start + prefix.length,
-            start + prefix.length
-          );
-        }
+  // Keep toolbar active states in sync with cursor position
+  useEffect(() => {
+    const handleSelectionChange = () => {
+      if (!editorRef.current) return;
+      const sel = window.getSelection();
+      if (sel && sel.anchorNode && editorRef.current.contains(sel.anchorNode)) {
+        updateActiveFormats();
       }
-    }, 0);
+    };
+
+    document.addEventListener("selectionchange", handleSelectionChange);
+    return () => {
+      document.removeEventListener("selectionchange", handleSelectionChange);
+    };
+  }, [updateActiveFormats]);
+
+  // Execute formatting on selected text or at cursor
+  const toggleFormat = (command: "bold" | "italic" | "underline") => {
+    if (editorRef.current) {
+      editorRef.current.focus();
+      document.execCommand(command, false);
+      syncState();
+    }
+  };
+
+  // Keyboard shortcuts (Ctrl+B / Cmd+B, Ctrl+I, Ctrl+U)
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.ctrlKey || e.metaKey) {
+      const key = e.key.toLowerCase();
+      if (key === "b") {
+        e.preventDefault();
+        toggleFormat("bold");
+      } else if (key === "i") {
+        e.preventDefault();
+        toggleFormat("italic");
+      } else if (key === "u") {
+        e.preventDefault();
+        toggleFormat("underline");
+      }
+    }
+  };
+
+  // Clean plain-text paste handler to prevent external CSS/script injection
+  const handlePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const text = e.clipboardData.getData("text/plain");
+    document.execCommand("insertText", false, text);
+    syncState();
   };
 
   // Authenticate user on mount
@@ -139,42 +165,67 @@ export default function SubmitShayariPage() {
     };
   }, [router]);
 
-  // Clean up object URL when selectedFile changes
+  // Clean up object URL when previewUrl changes or on unmount
   useEffect(() => {
-    if (!selectedFile) {
-      setPreviewUrl(null);
-      return;
-    }
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
 
-    const objectUrl = URL.createObjectURL(selectedFile);
-    setPreviewUrl(objectUrl);
-
-    return () => URL.revokeObjectURL(objectUrl);
-  }, [selectedFile]);
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setError(null);
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate type
-    if (!file.type.startsWith("image/")) {
-      setError("Please select a valid image file (PNG, JPG, WEBP).");
+    // 1. FRONTEND VALIDATION MUST HAPPEN FIRST
+    const validation = validateImageFile(file, "shers");
+    if (!validation.valid) {
+      setError(validation.error || "Image is too large. Maximum allowed size is 1 MB.");
+      if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
 
-    // Validate size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      setError("Image size exceeds 5MB. Please choose a smaller image.");
-      return;
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
     }
+    setSelectedFile(null);
+    setPreviewUrl(null);
+    setOptimizedResult(null);
+    setOptimizing(true);
+    setOptimizingStatus("Optimizing image...");
 
-    setSelectedFile(file);
+    try {
+      // 2. FRONTEND ADAPTIVE OPTIMIZATION
+      const result = await optimizeImage(file, "shers", {
+        onStatusChange: (status) => setOptimizingStatus(status),
+      });
+
+      setSelectedFile(result.file);
+      setPreviewUrl(result.previewUrl);
+      setOptimizedResult(result);
+      setOptimizingStatus(`Image optimized — ${formatFileSize(result.optimizedSize)}`);
+    } catch (err: any) {
+      logger.error("Sher image optimization error:", err);
+      setError(err.message || "Unable to optimize this image. Please try another image.");
+      setSelectedFile(null);
+      setPreviewUrl(null);
+      setOptimizedResult(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    } finally {
+      setOptimizing(false);
+    }
   };
 
   const removeSelectedFile = () => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
     setSelectedFile(null);
     setPreviewUrl(null);
+    setOptimizedResult(null);
+    setOptimizingStatus(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -184,8 +235,10 @@ export default function SubmitShayariPage() {
     e.preventDefault();
     if (!user) return;
 
-    const trimmedContent = content.trim();
-    if (!trimmedContent && !selectedFile) {
+    const isTextEmpty = rawText.trim().length === 0;
+    const trimmedContent = isTextEmpty ? "" : content.trim();
+
+    if (isTextEmpty && !selectedFile) {
       setError("Please write something or upload an image.");
       return;
     }
@@ -219,8 +272,13 @@ export default function SubmitShayariPage() {
     let uploadedImageUrl: string | null = null;
 
     try {
-      // 1. Upload image if selected
+      // 1. Upload ONLY optimized image if selected
       if (selectedFile) {
+        // Final size validation safeguard
+        if (selectedFile.size > 1 * 1024 * 1024) {
+          throw new Error("Image is too large. Maximum allowed size is 1 MB.");
+        }
+
         const cleanName = selectedFile.name.replace(/[^a-zA-Z0-9.-]/g, "_");
         uploadedFilePath = `${user.id}/${Date.now()}-${cleanName}`;
 
@@ -229,6 +287,7 @@ export default function SubmitShayariPage() {
           .upload(uploadedFilePath, selectedFile, {
             cacheControl: "3600",
             upsert: false,
+            contentType: selectedFile.type || "image/webp",
           });
 
         if (uploadError) {
@@ -245,7 +304,7 @@ export default function SubmitShayariPage() {
       // 2. Insert post row with status = 'pending'
       const postPayload: Record<string, any> = {
         user_id: user.id,
-        content: trimmedContent,
+        content: trimmedContent || null,
         image_url: uploadedImageUrl,
         status: "pending",
         author_email: user.email ?? null,
@@ -357,8 +416,13 @@ export default function SubmitShayariPage() {
                   type="button"
                   onClick={() => {
                     setContent("");
+                    setRawText("");
+                    if (editorRef.current) {
+                      editorRef.current.innerHTML = "";
+                    }
                     setSelectedFile(null);
                     setPreviewUrl(null);
+                    setOptimizedResult(null);
                     setSubmitted(false);
                   }}
                   className="px-6 py-2.5 border border-gray-300 hover:bg-gray-50 text-zinc-700 text-sm font-medium rounded-xl transition-colors cursor-pointer"
@@ -392,76 +456,122 @@ export default function SubmitShayariPage() {
               )}
 
               <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Content Textarea with Formatting Toolbar */}
+                {/* Content Rich-Text Area with WYSIWYG Formatting Toolbar */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <label
-                      htmlFor="content"
                       className="block text-xs font-semibold text-zinc-700 uppercase tracking-wider"
                     >
                       Shayari / Poem Content <span className="text-gray-400 font-normal">(Optional if image provided)</span>
                     </label>
+                  </div>
 
-                    {/* Formatting Toolbar: Heading, Bold, Italic, Underline */}
-                    <div className="flex items-center gap-0.5 bg-gray-100 p-1 rounded-lg border border-gray-200">
-                      {/* Heading button — makes selected text bigger */}
-                      <button
-                        type="button"
-                        onClick={() => applyFormat("h")}
-                        title="Heading — increases text size"
-                        className="p-1 text-zinc-600 hover:text-sky-600 hover:bg-white rounded transition-colors cursor-pointer"
-                        aria-label="Format as Heading"
-                      >
-                        <Heading className="w-3.5 h-3.5" />
-                      </button>
-                      {/* Divider */}
-                      <span className="w-px h-3.5 bg-gray-300 mx-0.5" />
-                      <button
-                        type="button"
-                        onClick={() => applyFormat("b")}
-                        title="Bold (<b>text</b>)"
-                        className="p-1 text-zinc-600 hover:text-zinc-900 hover:bg-white rounded transition-colors cursor-pointer"
-                        aria-label="Format Bold"
-                      >
-                        <Bold className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => applyFormat("i")}
-                        title="Italic (<i>text</i>)"
-                        className="p-1 text-zinc-600 hover:text-zinc-900 hover:bg-white rounded transition-colors cursor-pointer"
-                        aria-label="Format Italic"
-                      >
-                        <Italic className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => applyFormat("u")}
-                        title="Underline (<u>text</u>)"
-                        className="p-1 text-zinc-600 hover:text-zinc-900 hover:bg-white rounded transition-colors cursor-pointer"
-                        aria-label="Format Underline"
-                      >
-                        <Underline className="w-3.5 h-3.5" />
-                      </button>
+                  <div className="border border-gray-200 rounded-xl overflow-hidden focus-within:border-sky-500 focus-within:ring-2 focus-within:ring-sky-100 transition-all bg-white shadow-2xs">
+                    {/* Formatting Toolbar */}
+                    <div className="flex items-center justify-between px-3 py-1.5 bg-gray-50/90 border-b border-gray-200/80">
+                      <div className="flex items-center gap-1">
+                        {/* Bold Button */}
+                        <button
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            toggleFormat("bold");
+                          }}
+                          title="Bold (Ctrl+B)"
+                          aria-label="Bold"
+                          className={clsx(
+                            "h-8 px-2.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer select-none",
+                            isBold
+                              ? "bg-sky-100 text-sky-700 font-bold border border-sky-300 shadow-2xs"
+                              : "text-zinc-600 hover:text-zinc-900 hover:bg-gray-200/60 border border-transparent"
+                          )}
+                        >
+                          <Bold className="w-3.5 h-3.5 stroke-[2.5]" />
+                          <span className="font-bold text-xs">Bold</span>
+                        </button>
+
+                        {/* Italic Button */}
+                        <button
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            toggleFormat("italic");
+                          }}
+                          title="Italic (Ctrl+I)"
+                          aria-label="Italic"
+                          className={clsx(
+                            "h-8 px-2.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer select-none",
+                            isItalic
+                              ? "bg-sky-100 text-sky-700 font-bold border border-sky-300 shadow-2xs"
+                              : "text-zinc-600 hover:text-zinc-900 hover:bg-gray-200/60 border border-transparent"
+                          )}
+                        >
+                          <Italic className="w-3.5 h-3.5 stroke-[2.5]" />
+                          <span className="italic text-xs">Italic</span>
+                        </button>
+
+                        {/* Underline Button */}
+                        <button
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            toggleFormat("underline");
+                          }}
+                          title="Underline (Ctrl+U)"
+                          aria-label="Underline"
+                          className={clsx(
+                            "h-8 px-2.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer select-none",
+                            isUnderline
+                              ? "bg-sky-100 text-sky-700 font-bold border border-sky-300 shadow-2xs"
+                              : "text-zinc-600 hover:text-zinc-900 hover:bg-gray-200/60 border border-transparent"
+                          )}
+                        >
+                          <Underline className="w-3.5 h-3.5 stroke-[2.5]" />
+                          <span className="underline text-xs">Underline</span>
+                        </button>
+                      </div>
+
+                      <span className="hidden sm:inline-block text-[11px] text-gray-400 select-none">
+                        Shortcuts: Ctrl+B • Ctrl+I • Ctrl+U
+                      </span>
+                    </div>
+
+                    {/* WYSIWYG Editable Surface */}
+                    <div
+                      className="relative min-h-[160px] max-h-[420px] overflow-y-auto cursor-text"
+                      onClick={() => {
+                        if (editorRef.current && document.activeElement !== editorRef.current) {
+                          editorRef.current.focus();
+                        }
+                      }}
+                    >
+                      {rawText.length === 0 && (
+                        <div className="absolute top-4 left-4 right-4 pointer-events-none text-sm text-gray-400 select-none leading-relaxed">
+                          <p>लिखिए अपने दिल के अल्फ़ाज़...</p>
+                          <p>Write your Shayari here...</p>
+                          <p className="text-xs text-gray-400/80 mt-1">Select text or type, then use Bold, Italic, or Underline above.</p>
+                        </div>
+                      )}
+
+                      <div
+                        ref={editorRef}
+                        contentEditable
+                        role="textbox"
+                        aria-multiline="true"
+                        aria-label="Write your Shayari here"
+                        onInput={syncState}
+                        onKeyUp={syncState}
+                        onMouseUp={syncState}
+                        onSelect={syncState}
+                        onKeyDown={handleKeyDown}
+                        onPaste={handlePaste}
+                        className="p-4 text-sm text-zinc-800 leading-relaxed outline-none min-h-[160px] whitespace-pre-wrap break-words"
+                      />
                     </div>
                   </div>
 
-                  <div className="relative">
-                    <textarea
-                      id="content"
-                      ref={textareaRef}
-                      rows={6}
-                      value={content}
-                      onChange={(e) => {
-                        setContent(e.target.value);
-                        if (error) setError(null);
-                      }}
-                      placeholder="लिखिए अपने दिल के अल्फ़ाज़...&#10;Write your lines here (or upload an image below)...&#10;Select text and click B, I, or U above to format."
-                      className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm text-zinc-800 focus:bg-white focus:border-sky-500 focus:ring-1 focus:ring-sky-500 focus:outline-none transition-all leading-relaxed placeholder:text-gray-400"
-                    />
-                  </div>
-                  <p className="text-[11px] text-gray-400 mt-1">
-                    Select text then click <span className="font-bold text-zinc-600 text-xs">H</span> to make it a heading, <span className="font-semibold text-zinc-600">B</span> for bold, <span className="italic text-zinc-600">I</span> for italic, or <span className="underline text-zinc-600">U</span> to underline.
+                  <p className="text-[11px] text-gray-400 mt-1.5">
+                    Highlight any words or lines to style them directly with <strong>Bold</strong>, <em>Italic</em>, or <u>Underline</u>.
                   </p>
                 </div>
 
@@ -471,15 +581,49 @@ export default function SubmitShayariPage() {
                     Artwork / Photo <span className="text-gray-400 font-normal">(Optional)</span>
                   </label>
 
-                  {previewUrl ? (
-                    <div className="relative border-2 border-gray-200 rounded-xl p-2 bg-gray-50 overflow-hidden flex flex-col items-center">
-                      <div className="relative max-h-72 w-full flex items-center justify-center overflow-hidden rounded-lg">
+                  {optimizing ? (
+                    <div className="border border-sky-200 bg-sky-50/60 rounded-xl p-6 text-center flex flex-col items-center justify-center gap-2">
+                      <Loader2 className="w-5 h-5 text-sky-600 animate-spin" />
+                      <p className="text-xs font-semibold text-sky-800">
+                        {optimizingStatus || "Optimizing image..."}
+                      </p>
+                      <p className="text-[11px] text-sky-600">
+                        Applying adaptive compression for optimal display...
+                      </p>
+                    </div>
+                  ) : previewUrl ? (
+                    <div className="relative border-2 border-gray-200 rounded-xl p-3 bg-gray-50 overflow-hidden flex flex-col items-center">
+                      <div className="relative max-h-72 w-full flex items-center justify-center overflow-hidden rounded-lg bg-zinc-900/5">
                         <img
                           src={previewUrl}
                           alt="Preview"
                           className="max-h-72 w-auto object-contain rounded-lg shadow-xs"
                         />
                       </div>
+
+                      {optimizedResult && (
+                        <div className="w-full mt-3 px-3.5 py-2.5 bg-white rounded-xl border border-gray-200 flex flex-wrap items-center justify-between gap-2 text-xs">
+                          <div className="flex items-center gap-3">
+                            <span className="text-gray-500">
+                              Original: <strong className="text-zinc-700 font-semibold">{formatFileSize(optimizedResult.originalSize)}</strong>
+                            </span>
+                            <span className="text-gray-300">•</span>
+                            <span className="text-emerald-700 font-semibold">
+                              Optimized: <strong className="font-bold">{formatFileSize(optimizedResult.optimizedSize)}</strong>
+                              {optimizedResult.savedPercentage > 0 && (
+                                <span className="ml-1 text-[11px] text-emerald-600 font-normal">
+                                  (-{optimizedResult.savedPercentage}%)
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                          <div className="inline-flex items-center gap-1.5 text-[11px] text-emerald-700 font-medium bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded-lg">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>Image optimized successfully</span>
+                          </div>
+                        </div>
+                      )}
+
                       <button
                         type="button"
                         onClick={removeSelectedFile}
@@ -491,7 +635,7 @@ export default function SubmitShayariPage() {
                     </div>
                   ) : (
                     <div
-                      onClick={() => fileInputRef.current?.click()}
+                      onClick={() => !optimizing && fileInputRef.current?.click()}
                       className="border-2 border-dashed border-gray-300 hover:border-sky-400 hover:bg-sky-50/50 rounded-xl p-6 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-2 group"
                     >
                       <div className="w-10 h-10 rounded-full bg-gray-100 group-hover:bg-sky-100 flex items-center justify-center text-gray-500 group-hover:text-sky-600 transition-colors">
@@ -501,8 +645,11 @@ export default function SubmitShayariPage() {
                         <p className="text-xs font-semibold text-zinc-700">
                           Click to upload an image
                         </p>
-                        <p className="text-[11px] text-gray-400 mt-0.5">
-                          PNG, JPG, or WEBP (Max 5MB)
+                        <p className="text-[11px] text-gray-500 mt-1 font-medium">
+                          Maximum image size: 1 MB • Image will be optimized before upload
+                        </p>
+                        <p className="text-[10px] text-gray-400 mt-0.5">
+                          Supports PNG, JPG, or WEBP
                         </p>
                       </div>
                     </div>
@@ -528,13 +675,18 @@ export default function SubmitShayariPage() {
 
                   <button
                     type="submit"
-                    disabled={submitting}
+                    disabled={submitting || optimizing}
                     className="inline-flex items-center gap-2 px-6 py-2.5 bg-sky-500 hover:bg-sky-600 active:scale-98 text-white text-sm font-medium rounded-xl shadow-sm transition-all disabled:opacity-50 cursor-pointer"
                   >
                     {submitting ? (
                       <>
                         <Loader2 className="w-4 h-4 animate-spin" />
                         <span>Submitting...</span>
+                      </>
+                    ) : optimizing ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Optimizing Image...</span>
                       </>
                     ) : (
                       <span>Submit for Review</span>

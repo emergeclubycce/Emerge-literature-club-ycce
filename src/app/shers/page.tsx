@@ -16,7 +16,12 @@ import {
   Plus,
   Sparkles,
 } from "lucide-react";
-import { fetchPostEngagement } from "@/utils/engagement";
+import {
+  fetchPostEngagement,
+  fetchPostReactions,
+  createEmptyPostReactionsData,
+  type PostReactionsData,
+} from "@/utils/engagement";
 import { getAvatarFromUser } from "@/utils/profile";
 
 const inter = Inter({
@@ -36,6 +41,7 @@ interface DisplaySher {
   likeCount: number;
   bookmarkCount: number;
   authorInstagram?:string | null;
+  reactions?: PostReactionsData;
 }
 
 const PAGE_SIZE = 20;
@@ -76,7 +82,7 @@ function getPaginationItems(
 }
 
 function ShersContent() {
-  useLenis();
+  const scrollTo = useLenis();
 
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -90,6 +96,10 @@ function ShersContent() {
       currentPage = parsed;
     }
   }
+
+  useEffect(() => {
+    scrollTo(0);
+  }, [currentPage, scrollTo]);
 
   const [posts, setPosts] = useState<DisplaySher[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -167,8 +177,8 @@ function ShersContent() {
           { name?: string; photo_url?: string }
         > = {};
 
-        // Batch fetch author profiles and total engagement counts in parallel for ONLY these 20 posts
-        const [profilesRes, engagementMap] = await Promise.all([
+        // Batch fetch author profiles, total engagement counts, and reaction data in parallel for ONLY these 20 posts
+        const [profilesRes, engagementMap, reactionsMap] = await Promise.all([
           userIds.length > 0
             ? supabase
                 .from("profiles")
@@ -176,6 +186,7 @@ function ShersContent() {
                 .in("user_id", userIds)
             : Promise.resolve({ data: [] }),
           fetchPostEngagement(postIds),
+          fetchPostReactions(postIds, loggedUser?.id ?? null),
         ]);
 
         if (profilesRes.data) {
@@ -233,6 +244,9 @@ function ShersContent() {
             bookmarks: 0,
           };
 
+          const reactionsData =
+            reactionsMap[p.id] || createEmptyPostReactionsData();
+
           return {
             id: p.id,
             userId: p.user_id,
@@ -244,6 +258,7 @@ function ShersContent() {
             idx: from + ind,
             likeCount: engagement.likes,
             bookmarkCount: engagement.bookmarks,
+            reactions: reactionsData,
           };
         });
 
@@ -409,6 +424,7 @@ function ShersContent() {
                       }
                       likeCount={val.likeCount}
                       bookmarkCount={val.bookmarkCount}
+                      initialReactions={val.reactions}
                       onDelete={(deletedId) => {
                         setPosts((prev) => {
                           const updated = prev.filter((p) => p.id !== deletedId);
