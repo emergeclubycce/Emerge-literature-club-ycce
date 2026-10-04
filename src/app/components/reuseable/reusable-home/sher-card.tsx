@@ -17,13 +17,24 @@ import {
   MoreHorizontal,
   Share2,
   Copy,
-  Feather,
   Sparkles,
   X,
-  Instagram
+  Instagram,
+  Smile,
+  Feather,
 } from "lucide-react";
+import { createPortal } from "react-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import supabase from "@/config/supabase";
-import { fetchPostEngagement } from "@/utils/engagement";
+import {
+  fetchPostEngagement,
+  fetchPostReactions,
+  togglePostReaction,
+  createEmptyReactionCounts,
+  ALLOWED_REACTIONS,
+  type ReactionType,
+  type PostReactionsData,
+} from "@/utils/engagement";
 import { deleteShayariPost, renderFormattedText } from "@/utils/posts";
 import Link from "next/link";
 
@@ -31,6 +42,23 @@ const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
 });
+
+function getReactionAccessibleLabel(emoji: ReactionType): string {
+  switch (emoji) {
+    case "❤️":
+      return "Love reaction";
+    case "🔥":
+      return "Fire reaction";
+    case "🎉":
+      return "Celebration reaction";
+    case "👏🏻":
+      return "Clap reaction";
+    case "👍🏻":
+      return "Like reaction";
+    default:
+      return "Reaction";
+  }
+}
 
 interface SherProp {
   id?: number | string;
@@ -45,6 +73,7 @@ interface SherProp {
   initialBookmarked?: boolean;
   likeCount?: number;
   bookmarkCount?: number;
+  initialReactions?: PostReactionsData;
   currentUserId?: string | null;
   userId?: string | null;
   Authorinstagram?: string | null;
@@ -65,6 +94,7 @@ function SherCard({
   initialBookmarked,
   likeCount = 0,
   bookmarkCount = 0,
+  initialReactions,
   currentUserId,
   userId,
   Authorinstagram, 
@@ -84,9 +114,41 @@ function SherCard({
   const [captionExpanded, setCaptionExpanded] = useState<boolean>(false);
   const [showOptionsModal, setShowOptionsModal] = useState<boolean>(false);
 
+  // Emoji Reactions State
+  const [reactionCounts, setReactionCounts] = useState<Record<ReactionType, number>>(
+    initialReactions?.counts ?? createEmptyReactionCounts()
+  );
+  const [currentUserReaction, setCurrentUserReaction] = useState<ReactionType | null>(
+    initialReactions?.userReaction ?? null
+  );
+  const [showReactionPicker, setShowReactionPicker] = useState<boolean>(false);
+  const [pickerPosition, setPickerPosition] = useState<{ x: number; y: number } | null>(null);
+  const [isProcessingReaction, setIsProcessingReaction] = useState<boolean>(false);
+  const [isMounted, setIsMounted] = useState<boolean>(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  const pickerRef = useRef<HTMLDivElement>(null);
+  const reactionTriggerRef = useRef<HTMLButtonElement>(null);
+  const cardRef = useRef<HTMLElement>(null);
+  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const touchStartPosRef = useRef<{ x: number; y: number } | null>(null);
+  const isLongPressTriggeredRef = useRef<boolean>(false);
+
   // Instagram-style double tap to like
   const [showHeartPop, setShowHeartPop] = useState<boolean>(false);
   const lastTapRef = useRef<number>(0);
+
+  useEffect(() => {
+    if (initialReactions?.counts) {
+      setReactionCounts(initialReactions.counts);
+    }
+    if (initialReactions?.userReaction !== undefined) {
+      setCurrentUserReaction(initialReactions.userReaction);
+    }
+  }, [initialReactions]);
 
   useEffect(() => {
     setAuthorPhotoError(false);
@@ -226,6 +288,247 @@ function SherCard({
     }
   }, [id, likeCount, bookmarkCount]);
 
+  // Fetch reaction data ONLY if not provided via props (standalone cards)
+  useEffect(() => {
+    const numericPostId =
+      typeof id === "number"
+        ? id
+        : typeof id === "string" && !isNaN(Number(id))
+        ? Number(id)
+        : null;
+
+    if (!numericPostId) return;
+
+    if (initialReactions === undefined) {
+      fetchPostReactions([numericPostId], effectiveUserId).then((res) => {
+        if (res[numericPostId]) {
+          setReactionCounts(res[numericPostId].counts);
+          setCurrentUserReaction(res[numericPostId].userReaction);
+        }
+      });
+    }
+  }, [id, initialReactions, effectiveUserId]);
+
+  // Handle reaction selection (Optimistic UI)
+  const handleSelectReaction = async (selectedEmoji: ReactionType) => {
+    const numericPostId =
+      typeof id === "number"
+        ? id
+        : typeof id === "string" && !isNaN(Number(id))
+        ? Number(id)
+        : null;
+
+    if (!numericPostId || isProcessingReaction) return;
+
+    const { data: authData, error: authErr } = await supabase.auth.getUser();
+    if (authErr && authErr.message?.toLowerCase().includes("refresh token")) {
+      await supabase.auth.signOut({ scope: "local" }).catch(() => {});
+    }
+    const user = authData?.user;
+
+    if (!user) {
+      router.push("/auth/login");
+      return;
+    }
+
+    const prevReaction = currentUserReaction;
+    const prevCounts = { ...reactionCounts };
+
+    let nextReaction: ReactionType | null = null;
+    const nextCounts = { ...reactionCounts };
+
+    if (prevReaction === selectedEmoji) {
+      // Toggle off / remove reaction
+      nextReaction = null;
+      nextCounts[selectedEmoji] = Math.max(0, (nextCounts[selectedEmoji] || 0) - 1);
+    } else {
+      if (prevReaction) {
+        // Replace previous reaction
+        nextCounts[prevReaction] = Math.max(0, (nextCounts[prevReaction] || 0) - 1);
+      }
+      nextReaction = selectedEmoji;
+      nextCounts[selectedEmoji] = (nextCounts[selectedEmoji] || 0) + 1;
+    }
+
+    setCurrentUserReaction(nextReaction);
+    setReactionCounts(nextCounts);
+    setIsProcessingReaction(true);
+
+    try {
+      const res = await togglePostReaction(
+        numericPostId,
+        selectedEmoji,
+        user.id,
+        prevReaction
+      );
+
+      if (!res.success) {
+        throw res.error || new Error("Reaction update failed");
+      }
+    } catch (err) {
+      logger.error("Failed to update reaction:", err);
+      // Revert optimistic state on failure
+      setCurrentUserReaction(prevReaction);
+      setReactionCounts(prevCounts);
+    } finally {
+      setIsProcessingReaction(false);
+    }
+  };
+
+  // Helper to open reaction picker at specific viewport coordinates with intelligent clamping
+  const openPickerAt = (clientX: number, clientY: number) => {
+    if (typeof window === "undefined") return;
+    const pickerWidth = 240;
+    const pickerHeight = 52;
+    const margin = 12;
+
+    // Center horizontally around the target point
+    let x = clientX - pickerWidth / 2;
+    // Clamp horizontally to avoid viewport overflow
+    if (x < margin) x = margin;
+    if (x + pickerWidth > window.innerWidth - margin) {
+      x = window.innerWidth - pickerWidth - margin;
+    }
+
+    // By default position vertically above clientY
+    let y = clientY - pickerHeight - 14;
+    // If not enough space above, flip below
+    if (y < margin) {
+      y = clientY + 16;
+    }
+    // Clamp vertically so it doesn't go below viewport
+    if (y + pickerHeight > window.innerHeight - margin) {
+      y = window.innerHeight - pickerHeight - margin;
+    }
+
+    setPickerPosition({ x, y });
+    setShowReactionPicker(true);
+  };
+
+  // Dedicated action bar trigger button handler
+  const handleTriggerButtonClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    if (showReactionPicker) {
+      setShowReactionPicker(false);
+      return;
+    }
+    const rect = reactionTriggerRef.current?.getBoundingClientRect();
+    if (rect) {
+      openPickerAt(rect.left + rect.width / 2, rect.top);
+    } else {
+      openPickerAt(e.clientX, e.clientY);
+    }
+  };
+
+  // Close reaction picker on click outside, scroll, or Escape key
+  useEffect(() => {
+    if (!showReactionPicker) return;
+
+    const handleScroll = () => {
+      setShowReactionPicker(false);
+    };
+
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as Node;
+      if (
+        pickerRef.current &&
+        !pickerRef.current.contains(target) &&
+        reactionTriggerRef.current &&
+        !reactionTriggerRef.current.contains(target)
+      ) {
+        setShowReactionPicker(false);
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setShowReactionPicker(false);
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside, { passive: true });
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [showReactionPicker]);
+
+  // Clean up press timers on unmount
+  useEffect(() => {
+    return () => {
+      if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+    };
+  }, []);
+
+  // Mobile Long Press Handling (450ms)
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      const touch = e.touches[0];
+      touchStartPosRef.current = { x: touch.clientX, y: touch.clientY };
+      isLongPressTriggeredRef.current = false;
+      if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = setTimeout(() => {
+        isLongPressTriggeredRef.current = true;
+        if (touchStartPosRef.current) {
+          openPickerAt(touchStartPosRef.current.x, touchStartPosRef.current.y);
+        }
+        if (typeof window !== "undefined" && "vibrate" in navigator) {
+          try {
+            navigator.vibrate(40);
+          } catch {}
+        }
+      }, 450);
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (touchStartPosRef.current && e.touches.length === 1) {
+      const dx = Math.abs(e.touches[0].clientX - touchStartPosRef.current.x);
+      const dy = Math.abs(e.touches[0].clientY - touchStartPosRef.current.y);
+      // Cancel timer if finger moves > 10px (user is scrolling)
+      if (dx > 10 || dy > 10) {
+        if (longPressTimerRef.current) {
+          clearTimeout(longPressTimerRef.current);
+          longPressTimerRef.current = null;
+        }
+      }
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+
+    // Slide-to-select support when picker is open
+    if (showReactionPicker && e.changedTouches.length === 1) {
+      const touch = e.changedTouches[0];
+      const targetEl = document.elementFromPoint(touch.clientX, touch.clientY);
+      const reactionBtn = targetEl?.closest("[data-reaction-emoji]") as HTMLElement | null;
+      if (reactionBtn) {
+        const emoji = reactionBtn.getAttribute("data-reaction-emoji") as ReactionType;
+        if (emoji && (ALLOWED_REACTIONS as readonly string[]).includes(emoji)) {
+          handleSelectReaction(emoji);
+          setShowReactionPicker(false);
+        }
+      }
+    }
+
+    touchStartPosRef.current = null;
+    if (isLongPressTriggeredRef.current) {
+      setTimeout(() => {
+        isLongPressTriggeredRef.current = false;
+      }, 350);
+    }
+  };
+
   // Handle Like Toggle
   const handleToggleLike = async () => {
     const numericPostId =
@@ -279,6 +582,7 @@ function SherCard({
 
   // Handle double-tap on image (Instagram signature gesture)
   const handleImageTouch = () => {
+    if (isLongPressTriggeredRef.current) return;
     const now = Date.now();
     const DOUBLE_TAP_DELAY = 300;
     if (now - lastTapRef.current < DOUBLE_TAP_DELAY) {
@@ -422,7 +726,22 @@ function SherCard({
 
   return (
     <article
-      className={`${inter.className} w-full max-w-md -mt-5  md:mt-0 mx-auto bg-white border-b border-gray-200/80 sm:border sm:rounded-2xl sm:shadow-xs overflow-hidden transition-all relative select-none sm:select-auto`}
+      ref={cardRef}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchEnd}
+      onClickCapture={(e) => {
+        if (isLongPressTriggeredRef.current) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      }}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        openPickerAt(e.clientX, e.clientY);
+      }}
+      className={`${inter.className} w-full max-w-md -mt-5 md:mt-0 mx-auto bg-white border-b border-gray-200/80 sm:border sm:rounded-2xl sm:shadow-xs transition-all relative select-none sm:select-auto`}
     >
       {/* ========================================================= */}
       {/* 1. INSTAGRAM POST HEADER                                  */}
@@ -551,8 +870,8 @@ function SherCard({
       {/* ========================================================= */}
       {/* 3. INSTAGRAM ACTION BAR (Directly below photo)           */}
       {/* ========================================================= */}
-      <div className="px-3 pt-2.5 pb-1 flex items-center justify-between bg-white">
-        <div className="flex items-center gap-4">
+      <div className="px-3 pt-2.5 pb-1 flex items-center justify-between bg-white relative">
+        <div className="flex items-center gap-3 sm:gap-4">
           {/* Like Heart Button */}
           <button
             type="button"
@@ -571,16 +890,29 @@ function SherCard({
             />
           </button>
 
-          {/* Comment Bubble Button */}
-          {/* <button
+          {/* Dedicated Emoji Reaction Trigger Button (Desktop & Mobile) */}
+          <button
+            ref={reactionTriggerRef}
             type="button"
-            onClick={() => setCaptionExpanded(true)}
-            className="cursor-pointer text-zinc-800 hover:text-zinc-600 active:scale-125 transition-transform flex items-center justify-center"
-            aria-label="Comment on Sher"
-            title="Read Discussion"
+            onClick={handleTriggerButtonClick}
+            aria-label="React with emoji"
+            className={`cursor-pointer transition-transform active:scale-125 focus:outline-none flex items-center justify-center p-0.5 rounded-full ${
+              currentUserReaction
+                ? "text-sky-600 bg-sky-50 ring-1 ring-sky-300"
+                : "text-zinc-800 hover:text-zinc-600"
+            }`}
+            title={
+              currentUserReaction
+                ? `Reacted with ${currentUserReaction}`
+                : "React with emoji"
+            }
           >
-            <MessageCircle className="w-6 h-6" />
-          </button> */}
+            {currentUserReaction ? (
+              <span className="text-xl leading-none">{currentUserReaction}</span>
+            ) : (
+              <Smile className="w-6 h-6" />
+            )}
+          </button>
 
           {/* Share / Paper Plane Button */}
           <button
@@ -620,11 +952,46 @@ function SherCard({
       </div>
 
       {/* ========================================================= */}
-      {/* 4. LIKES COUNTER (INSTAGRAM STYLE: "X likes")            */}
+      {/* 4. LIKES COUNTER & COMPACT REACTION BADGES                */}
       {/* ========================================================= */}
       <div className="px-3.5 pt-1 text-xs sm:text-[13px] font-bold text-zinc-900 select-none">
         {likesCount.toLocaleString()} {likesCount === 1 ? "like" : "likes"}
       </div>
+
+      {/* Compact Reaction Badges */}
+      {ALLOWED_REACTIONS.some((emoji) => (reactionCounts[emoji] || 0) > 0) && (
+        <div className="px-3.5 pt-1.5 flex flex-wrap items-center gap-1.5 select-none">
+          {ALLOWED_REACTIONS.map((emoji) => {
+            const count = reactionCounts[emoji] || 0;
+            if (count <= 0) return null;
+            const isUserReacted = currentUserReaction === emoji;
+            return (
+              <button
+                key={emoji}
+                type="button"
+                onClick={() => handleSelectReaction(emoji)}
+                disabled={isProcessingReaction}
+                aria-label={`${
+                  isUserReacted ? "Remove" : "Add"
+                } ${emoji} reaction, total ${count}`}
+                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium transition-all cursor-pointer ${
+                  isUserReacted
+                    ? "bg-sky-50 text-sky-700 border border-sky-300 shadow-xs scale-105"
+                    : "bg-zinc-100 hover:bg-zinc-200/80 text-zinc-700 border border-transparent"
+                }`}
+                title={
+                  isUserReacted
+                    ? `You reacted with ${emoji} (click to remove)`
+                    : `React with ${emoji}`
+                }
+              >
+                <span className="text-sm leading-none">{emoji}</span>
+                <span className="text-[11px] font-semibold">{count}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* ========================================================= */}
       {/* 5. CAPTION & INLINE USERNAME (INSTAGRAM STYLE)           */}
@@ -787,6 +1154,62 @@ function SherCard({
           </div>
         </div>
       )}
+      {/* WhatsApp-style Floating Reaction Picker with Framer Motion */}
+      {isMounted &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <AnimatePresence>
+            {showReactionPicker && pickerPosition && (
+              <motion.div
+                ref={pickerRef}
+                role="dialog"
+                aria-label="Reaction picker"
+                initial={{ opacity: 0, scale: 0.85, y: 8 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 5 }}
+                transition={{ duration: 0.18, ease: "easeOut" }}
+                style={{
+                  position: "fixed",
+                  left: `${pickerPosition.x}px`,
+                  top: `${pickerPosition.y}px`,
+                  zIndex: 9999,
+                }}
+                className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border border-zinc-200/90 dark:border-zinc-800 shadow-xl rounded-full px-2 py-1 flex items-center gap-0.5 sm:gap-1 select-none pointer-events-auto"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {ALLOWED_REACTIONS.map((emoji) => {
+                  const isSelected = currentUserReaction === emoji;
+                  return (
+                    <motion.button
+                      key={emoji}
+                      type="button"
+                      data-reaction-emoji={emoji}
+                      whileHover={{ scale: 1.18 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleSelectReaction(emoji);
+                        setShowReactionPicker(false);
+                      }}
+                      disabled={isProcessingReaction}
+                      aria-label={getReactionAccessibleLabel(emoji)}
+                      className={`p-1.5 sm:p-2 rounded-full cursor-pointer flex items-center justify-center transition-colors ${
+                        isSelected
+                          ? "bg-sky-100 dark:bg-sky-950/60 ring-1.5 ring-sky-400"
+                          : "hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                      }`}
+                    >
+                      <span className="text-xl sm:text-2xl leading-none select-none">
+                        {emoji}
+                      </span>
+                    </motion.button>
+                  );
+                })}
+              </motion.div>
+            )}
+          </AnimatePresence>,
+          document.body
+        )}
     </article>
   );
 }

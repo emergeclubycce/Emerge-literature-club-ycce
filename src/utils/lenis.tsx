@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import Lenis from "@studio-freight/lenis";
 
 type ScrollTarget = number | string | HTMLElement;
@@ -26,14 +26,20 @@ export const useLenis = () => {
 
     return () => {
       lenis.destroy();
+      lenisRef.current = null;
     };
   }, []);
 
-  const scrollTo = (target: ScrollTarget) => {
+  const scrollTo = useCallback((target: ScrollTarget) => {
     if (lenisRef.current) {
       lenisRef.current.scrollTo(target);
+    } else if (typeof window !== "undefined") {
+      window.scrollTo({
+        top: typeof target === "number" ? target : 0,
+        behavior: "smooth",
+      });
     }
-  };
+  }, []);
 
   return scrollTo;
 };

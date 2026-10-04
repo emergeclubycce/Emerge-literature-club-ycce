@@ -36,12 +36,11 @@ function parseLineFormatting(line: string): React.ReactNode[] {
   if (!line) return [];
 
   // Regex pattern matching:
-  // 1. <b>...</b> or **...**
-  // 2. <i>...</i>
-  // 3. <u>...</u>
-  // 4. *...*
-  // 5. _..._
-  const pattern = /(<h>[\s\S]*?<\/h>|<b>[\s\S]*?<\/b>|\*\*[\s\S]*?\*\*|<i>[\s\S]*?<\/i>|<u>[\s\S]*?<\/u>|\*[^\*\n]+?\*|_[^_\n]+?_)/g;
+  // 1. <h>...</h>
+  // 2. <b>...</b> or <strong>...</strong> or **...**
+  // 3. <i>...</i> or <em>...</em> or *...* or _..._
+  // 4. <u>...</u>
+  const pattern = /(<h>[\s\S]*?<\/h>|<b>[\s\S]*?<\/b>|<strong>[\s\S]*?<\/strong>|\*\*[\s\S]*?\*\*|<i>[\s\S]*?<\/i>|<em>[\s\S]*?<\/em>|<u>[\s\S]*?<\/u>|\*[^\*\n]+?\*|_[^_\n]+?_)/g;
   const parts = line.split(pattern);
 
   return parts.map((part, idx) => {
@@ -53,9 +52,13 @@ function parseLineFormatting(line: string): React.ReactNode[] {
       return <span key={idx} className="text-lg font-bold leading-snug block">{parseLineFormatting(inner)}</span>;
     }
 
-    // Bold: <b>text</b> or **text**
+    // Bold: <b>text</b> or <strong>text</strong> or **text**
     if (part.startsWith("<b>") && part.endsWith("</b>")) {
       const inner = part.slice(3, -4);
+      return <strong key={idx} className="font-bold">{parseLineFormatting(inner)}</strong>;
+    }
+    if (part.startsWith("<strong>") && part.endsWith("</strong>")) {
+      const inner = part.slice(8, -9);
       return <strong key={idx} className="font-bold">{parseLineFormatting(inner)}</strong>;
     }
     if (part.startsWith("**") && part.endsWith("**") && part.length >= 4) {
@@ -63,9 +66,13 @@ function parseLineFormatting(line: string): React.ReactNode[] {
       return <strong key={idx} className="font-bold">{parseLineFormatting(inner)}</strong>;
     }
 
-    // Italic: <i>text</i>
+    // Italic: <i>text</i> or <em>text</em>
     if (part.startsWith("<i>") && part.endsWith("</i>")) {
       const inner = part.slice(3, -4);
+      return <em key={idx} className="italic">{parseLineFormatting(inner)}</em>;
+    }
+    if (part.startsWith("<em>") && part.endsWith("</em>")) {
+      const inner = part.slice(4, -5);
       return <em key={idx} className="italic">{parseLineFormatting(inner)}</em>;
     }
 
@@ -90,6 +97,86 @@ function parseLineFormatting(line: string): React.ReactNode[] {
     // Default plain text (React safely auto-escapes this)
     return <React.Fragment key={idx}>{part}</React.Fragment>;
   });
+}
+
+/**
+ * Safely serializes an HTML contenteditable DOM tree into canonical formatted text
+ * for storage in Supabase.
+ * - Extracts clean text with bold (<b>), italic (<i>), underline (<u>) tags and \n for line breaks.
+ * - Strips all scripts, iframes, inline CSS, and dangerous HTML.
+ * - Computes plainText for accurate emptiness validation.
+ */
+export function serializeEditorToFormattedText(root: HTMLElement): { formatted: string; plainText: string } {
+  if (!root) return { formatted: "", plainText: "" };
+
+  const plainText = (root.innerText || root.textContent || "").replace(/\u200B/g, "").trim();
+
+  function walk(node: Node): string {
+    if (node.nodeType === Node.TEXT_NODE) {
+      return node.nodeValue || "";
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) {
+      return "";
+    }
+
+    const el = node as HTMLElement;
+    const tag = el.tagName.toLowerCase();
+
+    if (tag === "br") {
+      return "\n";
+    }
+
+    let childText = "";
+    for (let i = 0; i < el.childNodes.length; i++) {
+      childText += walk(el.childNodes[i]);
+    }
+
+    // Check formatting
+    const isBold =
+      tag === "b" ||
+      tag === "strong" ||
+      el.style.fontWeight === "bold" ||
+      parseInt(el.style.fontWeight, 10) >= 600;
+
+    const isItalic =
+      tag === "i" ||
+      tag === "em" ||
+      el.style.fontStyle === "italic";
+
+    const isUnderline =
+      tag === "u" ||
+      el.style.textDecoration?.includes("underline") ||
+      el.style.textDecorationLine?.includes("underline");
+
+    let wrapped = childText;
+    if (isUnderline && wrapped.trim()) wrapped = `<u>${wrapped}</u>`;
+    if (isItalic && wrapped.trim()) wrapped = `<i>${wrapped}</i>`;
+    if (isBold && wrapped.trim()) wrapped = `<b>${wrapped}</b>`;
+
+    if (tag === "div" || tag === "p") {
+      return wrapped.endsWith("\n") ? wrapped : wrapped + "\n";
+    }
+
+    return wrapped;
+  }
+
+  let formatted = "";
+  for (let i = 0; i < root.childNodes.length; i++) {
+    const child = root.childNodes[i];
+    const isBlock =
+      child.nodeType === Node.ELEMENT_NODE &&
+      (child.nodeName.toLowerCase() === "div" || child.nodeName.toLowerCase() === "p");
+
+    if (isBlock && formatted.length > 0 && !formatted.endsWith("\n")) {
+      formatted += "\n";
+    }
+    formatted += walk(child);
+  }
+
+  // Normalize excessive trailing newlines
+  formatted = formatted.replace(/\n+$/, "");
+
+  return { formatted, plainText };
 }
 
 /**

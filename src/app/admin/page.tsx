@@ -37,6 +37,11 @@ import {
 import Footer from "@/app/components/reuseable/reusable-home/Footer";
 import { getAvatarFromUser } from "@/utils/profile";
 import { renderFormattedText } from "@/utils/posts";
+import {
+  validateImageFile,
+  optimizeImage,
+  formatFileSize,
+} from "@/utils/imageOptimizer";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -164,6 +169,13 @@ export default function AdminDashboardPage() {
   const [eventRegUrl, setEventRegUrl] = useState("");
   const [eventPosterFile, setEventPosterFile] = useState<File | null>(null);
   const [eventPosterPreview, setEventPosterPreview] = useState<string | null>(null);
+  const [eventPosterOptimizing, setEventPosterOptimizing] = useState(false);
+  const [eventPosterOptimizingStatus, setEventPosterOptimizingStatus] = useState<string | null>(null);
+  const [eventPosterStats, setEventPosterStats] = useState<{
+    originalSize: number;
+    optimizedSize: number;
+    savedPercentage: number;
+  } | null>(null);
   const [eventFormSaving, setEventFormSaving] = useState(false);
   const [eventFormError, setEventFormError] = useState<string | null>(null);
 
@@ -185,6 +197,13 @@ export default function AdminDashboardPage() {
   const [memoryType, setMemoryType] = useState<"event" | "competition">("event");
   const [memoryCoverFile, setMemoryCoverFile] = useState<File | null>(null);
   const [memoryCoverPreview, setMemoryCoverPreview] = useState<string | null>(null);
+  const [memoryCoverOptimizing, setMemoryCoverOptimizing] = useState(false);
+  const [memoryCoverOptimizingStatus, setMemoryCoverOptimizingStatus] = useState<string | null>(null);
+  const [memoryCoverStats, setMemoryCoverStats] = useState<{
+    originalSize: number;
+    optimizedSize: number;
+    savedPercentage: number;
+  } | null>(null);
   const [memoryFormSaving, setMemoryFormSaving] = useState(false);
   const [memoryFormError, setMemoryFormError] = useState<string | null>(null);
 
@@ -198,6 +217,13 @@ export default function AdminDashboardPage() {
   const [newWinnerPos, setNewWinnerPos] = useState("");
   const [newWinnerDesc, setNewWinnerDesc] = useState("");
   const [newWinnerFile, setNewWinnerFile] = useState<File | null>(null);
+  const [newWinnerPreview, setNewWinnerPreview] = useState<string | null>(null);
+  const [newWinnerOptimizing, setNewWinnerOptimizing] = useState(false);
+  const [newWinnerStats, setNewWinnerStats] = useState<{
+    originalSize: number;
+    optimizedSize: number;
+    savedPercentage: number;
+  } | null>(null);
   const [addingWinner, setAddingWinner] = useState(false);
 
   // Delete memory confirmation modal state
@@ -582,6 +608,9 @@ export default function AdminDashboardPage() {
 
   // ----------------- EVENT MODAL HELPERS -----------------
   const openAddEventModal = () => {
+    if (eventPosterPreview && eventPosterPreview.startsWith("blob:")) {
+      URL.revokeObjectURL(eventPosterPreview);
+    }
     setEditingEvent(null);
     setEventTitle("");
     setEventDescription("");
@@ -590,11 +619,17 @@ export default function AdminDashboardPage() {
     setEventRegUrl("");
     setEventPosterFile(null);
     setEventPosterPreview(null);
+    setEventPosterOptimizing(false);
+    setEventPosterOptimizingStatus(null);
+    setEventPosterStats(null);
     setEventFormError(null);
     setEventModalOpen(true);
   };
 
   const openEditEventModal = (event: AdminEvent) => {
+    if (eventPosterPreview && eventPosterPreview.startsWith("blob:")) {
+      URL.revokeObjectURL(eventPosterPreview);
+    }
     setEditingEvent(event);
     setEventTitle(event.title || "");
     setEventDescription(event.description || "");
@@ -603,16 +638,58 @@ export default function AdminDashboardPage() {
     setEventRegUrl(event.registration_url || "");
     setEventPosterFile(null);
     setEventPosterPreview(event.image_url || null);
+    setEventPosterOptimizing(false);
+    setEventPosterOptimizingStatus(null);
+    setEventPosterStats(null);
     setEventFormError(null);
     setEventModalOpen(true);
   };
 
-  const handleEventFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setEventPosterFile(file);
-      const objUrl = URL.createObjectURL(file);
-      setEventPosterPreview(objUrl);
+  const handleEventFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEventFormError(null);
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // 1. FRONTEND VALIDATION FIRST (3 MB limit)
+    const validation = validateImageFile(file, "events");
+    if (!validation.valid) {
+      setEventFormError(validation.error || "Image is too large. Maximum allowed size is 3 MB.");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
+    if (eventPosterPreview && eventPosterPreview.startsWith("blob:")) {
+      URL.revokeObjectURL(eventPosterPreview);
+    }
+    setEventPosterFile(null);
+    setEventPosterPreview(null);
+    setEventPosterStats(null);
+    setEventPosterOptimizing(true);
+    setEventPosterOptimizingStatus("Optimizing poster image...");
+
+    try {
+      // 2. FRONTEND ADAPTIVE OPTIMIZATION
+      const result = await optimizeImage(file, "events", {
+        onStatusChange: (status) => setEventPosterOptimizingStatus(status),
+      });
+
+      setEventPosterFile(result.file);
+      setEventPosterPreview(result.previewUrl);
+      setEventPosterStats({
+        originalSize: result.originalSize,
+        optimizedSize: result.optimizedSize,
+        savedPercentage: result.savedPercentage,
+      });
+      setEventPosterOptimizingStatus(`Image optimized — ${formatFileSize(result.optimizedSize)}`);
+    } catch (err: any) {
+      logger.error("Event poster optimization error:", err);
+      setEventFormError(err.message || "Unable to optimize this image. Please try another image.");
+      setEventPosterFile(null);
+      setEventPosterPreview(null);
+      setEventPosterStats(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    } finally {
+      setEventPosterOptimizing(false);
     }
   };
 
@@ -653,11 +730,21 @@ export default function AdminDashboardPage() {
       }
     }
 
+    if (eventPosterOptimizing) {
+      setEventFormError("Please wait until the poster image optimization completes.");
+      return;
+    }
+
     try {
       setEventFormSaving(true);
       let finalImageUrl = editingEvent ? editingEvent.image_url : "/image/logo.png";
 
       if (eventPosterFile && user) {
+        // Final size validation safeguard
+        if (eventPosterFile.size > 3 * 1024 * 1024) {
+          throw new Error("Image is too large. Maximum allowed size is 3 MB.");
+        }
+
         const cleanName = eventPosterFile.name.replace(/[^a-zA-Z0-9.-]/g, "_");
         const filePath = `${user.id}/${Date.now()}-${cleanName}`;
 
@@ -666,6 +753,7 @@ export default function AdminDashboardPage() {
           .upload(filePath, eventPosterFile, {
             cacheControl: "3600",
             upsert: false,
+            contentType: eventPosterFile.type || "image/webp",
           });
 
         if (uploadError) {
@@ -775,6 +863,12 @@ export default function AdminDashboardPage() {
 
   // ----------------- MEMORY MODAL HELPERS -----------------
   const openAddMemoryModal = () => {
+    if (memoryCoverPreview && memoryCoverPreview.startsWith("blob:")) {
+      URL.revokeObjectURL(memoryCoverPreview);
+    }
+    if (newWinnerPreview) {
+      URL.revokeObjectURL(newWinnerPreview);
+    }
     setEditingMemory(null);
     setMemoryTitle("");
     setMemoryDescription("");
@@ -782,13 +876,26 @@ export default function AdminDashboardPage() {
     setMemoryType("event");
     setMemoryCoverFile(null);
     setMemoryCoverPreview(null);
+    setMemoryCoverOptimizing(false);
+    setMemoryCoverOptimizingStatus(null);
+    setMemoryCoverStats(null);
     setMemoryPhotos([]);
     setMemoryWinners([]);
+    setNewWinnerFile(null);
+    setNewWinnerPreview(null);
+    setNewWinnerOptimizing(false);
+    setNewWinnerStats(null);
     setMemoryFormError(null);
     setMemoryModalOpen(true);
   };
 
   const openEditMemoryModal = async (mem: AdminMemory) => {
+    if (memoryCoverPreview && memoryCoverPreview.startsWith("blob:")) {
+      URL.revokeObjectURL(memoryCoverPreview);
+    }
+    if (newWinnerPreview) {
+      URL.revokeObjectURL(newWinnerPreview);
+    }
     setEditingMemory(mem);
     setMemoryTitle(mem.title || "");
     setMemoryDescription(mem.description || "");
@@ -796,6 +903,13 @@ export default function AdminDashboardPage() {
     setMemoryType(mem.type || "event");
     setMemoryCoverFile(null);
     setMemoryCoverPreview(mem.cover_image_url || null);
+    setMemoryCoverOptimizing(false);
+    setMemoryCoverOptimizingStatus(null);
+    setMemoryCoverStats(null);
+    setNewWinnerFile(null);
+    setNewWinnerPreview(null);
+    setNewWinnerOptimizing(false);
+    setNewWinnerStats(null);
     setMemoryFormError(null);
     setMemoryModalOpen(true);
 
@@ -826,11 +940,51 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const handleMemoryCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setMemoryCoverFile(file);
-      setMemoryCoverPreview(URL.createObjectURL(file));
+  const handleMemoryCoverChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    setMemoryFormError(null);
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // 1. FRONTEND VALIDATION FIRST (3 MB limit)
+    const validation = validateImageFile(file, "memories");
+    if (!validation.valid) {
+      setMemoryFormError(validation.error || "Image is too large. Maximum allowed size is 3 MB.");
+      if (memoryCoverInputRef.current) memoryCoverInputRef.current.value = "";
+      return;
+    }
+
+    if (memoryCoverPreview && memoryCoverPreview.startsWith("blob:")) {
+      URL.revokeObjectURL(memoryCoverPreview);
+    }
+    setMemoryCoverFile(null);
+    setMemoryCoverPreview(null);
+    setMemoryCoverStats(null);
+    setMemoryCoverOptimizing(true);
+    setMemoryCoverOptimizingStatus("Optimizing cover image...");
+
+    try {
+      // 2. FRONTEND ADAPTIVE OPTIMIZATION
+      const result = await optimizeImage(file, "memories", {
+        onStatusChange: (status) => setMemoryCoverOptimizingStatus(status),
+      });
+
+      setMemoryCoverFile(result.file);
+      setMemoryCoverPreview(result.previewUrl);
+      setMemoryCoverStats({
+        originalSize: result.originalSize,
+        optimizedSize: result.optimizedSize,
+        savedPercentage: result.savedPercentage,
+      });
+      setMemoryCoverOptimizingStatus(`Image optimized — ${formatFileSize(result.optimizedSize)}`);
+    } catch (err: any) {
+      logger.error("Memory cover optimization error:", err);
+      setMemoryFormError(err.message || "Unable to optimize this image. Please try another image.");
+      setMemoryCoverFile(null);
+      setMemoryCoverPreview(null);
+      setMemoryCoverStats(null);
+      if (memoryCoverInputRef.current) memoryCoverInputRef.current.value = "";
+    } finally {
+      setMemoryCoverOptimizing(false);
     }
   };
 
@@ -842,19 +996,44 @@ export default function AdminDashboardPage() {
       return;
     }
 
+    const files = Array.from(e.target.files);
+
+    // 1. FRONTEND VALIDATION FIRST (Every image must be <= 3 MB)
+    for (const f of files) {
+      const val = validateImageFile(f, "memories");
+      if (!val.valid) {
+        setMemoryFormError(val.error || "Image is too large. Maximum allowed size is 3 MB.");
+        e.target.value = "";
+        return;
+      }
+    }
+
     try {
       setUploadingPhotos(true);
       setMemoryFormError(null);
-      const files = Array.from(e.target.files);
 
       for (let i = 0; i < files.length; i++) {
         const f = files[i];
-        const cleanName = f.name.replace(/[^a-zA-Z0-9.-]/g, "_");
+
+        // 2. FRONTEND ADAPTIVE OPTIMIZATION
+        const optResult = await optimizeImage(f, "memories");
+        const optimizedFile = optResult.file;
+
+        // Final size safeguard
+        if (optimizedFile.size > 3 * 1024 * 1024) {
+          throw new Error("One or more images exceeded the 3 MB limit after optimization.");
+        }
+
+        const cleanName = optimizedFile.name.replace(/[^a-zA-Z0-9.-]/g, "_");
         const filePath = `${editingMemory.id}/${Date.now()}-${i}-${cleanName}`;
 
         const { error: upErr } = await supabase.storage
           .from("memory-images")
-          .upload(filePath, f, { cacheControl: "3600", upsert: false });
+          .upload(filePath, optimizedFile, {
+            cacheControl: "3600",
+            upsert: false,
+            contentType: optimizedFile.type || "image/webp",
+          });
 
         if (upErr) throw upErr;
 
@@ -926,9 +1105,54 @@ export default function AdminDashboardPage() {
   };
 
   // Add winner
+  const handleWinnerFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    setMemoryFormError(null);
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const validation = validateImageFile(file, "memories");
+    if (!validation.valid) {
+      setMemoryFormError(validation.error || "Image is too large. Maximum allowed size is 3 MB.");
+      e.target.value = "";
+      return;
+    }
+
+    if (newWinnerPreview) {
+      URL.revokeObjectURL(newWinnerPreview);
+    }
+    setNewWinnerFile(null);
+    setNewWinnerPreview(null);
+    setNewWinnerStats(null);
+    setNewWinnerOptimizing(true);
+
+    try {
+      const result = await optimizeImage(file, "memories");
+      setNewWinnerFile(result.file);
+      setNewWinnerPreview(result.previewUrl);
+      setNewWinnerStats({
+        originalSize: result.originalSize,
+        optimizedSize: result.optimizedSize,
+        savedPercentage: result.savedPercentage,
+      });
+    } catch (err: any) {
+      logger.error("Winner image optimization error:", err);
+      setMemoryFormError(err.message || "Unable to optimize winner image.");
+      setNewWinnerFile(null);
+      setNewWinnerPreview(null);
+      setNewWinnerStats(null);
+      e.target.value = "";
+    } finally {
+      setNewWinnerOptimizing(false);
+    }
+  };
+
   const handleAddWinner = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingMemory) return;
+    if (newWinnerOptimizing) {
+      setMemoryFormError("Please wait until winner image optimization completes.");
+      return;
+    }
     if (!newWinnerName.trim()) {
       setMemoryFormError("Winner name is required.");
       return;
@@ -940,12 +1164,20 @@ export default function AdminDashboardPage() {
       let winnerImageUrl: string | null = null;
 
       if (newWinnerFile && user) {
+        if (newWinnerFile.size > 3 * 1024 * 1024) {
+          throw new Error("Winner image is too large. Maximum allowed size is 3 MB.");
+        }
+
         const cleanName = newWinnerFile.name.replace(/[^a-zA-Z0-9.-]/g, "_");
         const filePath = `${editingMemory.id}/winners/${Date.now()}-${cleanName}`;
 
         const { error: upErr } = await supabase.storage
           .from("memory-images")
-          .upload(filePath, newWinnerFile, { cacheControl: "3600", upsert: false });
+          .upload(filePath, newWinnerFile, {
+            cacheControl: "3600",
+            upsert: false,
+            contentType: newWinnerFile.type || "image/webp",
+          });
 
         if (upErr) throw upErr;
 
@@ -978,7 +1210,12 @@ export default function AdminDashboardPage() {
       setNewWinnerName("");
       setNewWinnerPos("");
       setNewWinnerDesc("");
+      if (newWinnerPreview) {
+        URL.revokeObjectURL(newWinnerPreview);
+      }
       setNewWinnerFile(null);
+      setNewWinnerPreview(null);
+      setNewWinnerStats(null);
     } catch (err: any) {
       logger.error("Failed to add winner:", err);
       setMemoryFormError(err.message || "Failed to add winner.");
@@ -1033,11 +1270,20 @@ export default function AdminDashboardPage() {
       return;
     }
 
+    if (memoryCoverOptimizing) {
+      setMemoryFormError("Please wait until the cover image optimization completes.");
+      return;
+    }
+
     try {
       setMemoryFormSaving(true);
       let finalCoverUrl = editingMemory ? editingMemory.cover_image_url : null;
 
       if (memoryCoverFile && user) {
+        if (memoryCoverFile.size > 3 * 1024 * 1024) {
+          throw new Error("Cover image is too large. Maximum allowed size is 3 MB.");
+        }
+
         const cleanName = memoryCoverFile.name.replace(/[^a-zA-Z0-9.-]/g, "_");
         const filePath = `covers/${Date.now()}-${cleanName}`;
 
@@ -1046,6 +1292,7 @@ export default function AdminDashboardPage() {
           .upload(filePath, memoryCoverFile, {
             cacheControl: "3600",
             upsert: false,
+            contentType: memoryCoverFile.type || "image/webp",
           });
 
         if (uploadError) throw uploadError;
@@ -2007,31 +2254,57 @@ export default function AdminDashboardPage() {
                   <label className="block text-xs font-semibold text-zinc-700 mb-1">
                     Event Poster / Artwork
                   </label>
-                  <div className="flex items-center gap-3">
-                    {eventPosterPreview && (
-                      <div className="w-16 h-16 rounded-xl overflow-hidden bg-gray-100 border border-gray-200 relative flex-shrink-0">
-                        <Image
-                          src={eventPosterPreview}
-                          alt="Poster preview"
-                          fill
-                          sizes="64px"
-                          unoptimized={eventPosterPreview.startsWith("blob:") || eventPosterPreview.startsWith("http")}
-                          className="object-cover"
+                  <p className="text-[11px] text-gray-500 mb-2 font-medium">
+                    Maximum image size: 3 MB • Image will be optimized before upload
+                  </p>
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center gap-3">
+                      {eventPosterPreview && (
+                        <div className="w-16 h-16 rounded-xl overflow-hidden bg-gray-100 border border-gray-200 relative flex-shrink-0">
+                          <Image
+                            src={eventPosterPreview}
+                            alt="Poster preview"
+                            fill
+                            sizes="64px"
+                            unoptimized={eventPosterPreview.startsWith("blob:") || eventPosterPreview.startsWith("http")}
+                            className="object-cover"
+                          />
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <input
+                          type="file"
+                          accept="image/png, image/jpeg, image/webp"
+                          ref={fileInputRef}
+                          disabled={eventPosterOptimizing}
+                          onChange={handleEventFileChange}
+                          className="text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100 cursor-pointer disabled:opacity-50"
                         />
+                        <p className="text-[10px] text-gray-400 mt-1">
+                          Supports PNG, JPG, or WEBP (Max 3 MB)
+                        </p>
+                      </div>
+                    </div>
+
+                    {eventPosterOptimizing && (
+                      <div className="flex items-center gap-2 p-2 bg-sky-50 border border-sky-200 rounded-xl text-xs text-sky-700">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-sky-600 flex-shrink-0" />
+                        <span>{eventPosterOptimizingStatus || "Optimizing poster image..."}</span>
                       </div>
                     )}
-                    <div className="flex-1">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        ref={fileInputRef}
-                        onChange={handleEventFileChange}
-                        className="text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100 cursor-pointer"
-                      />
-                      <p className="text-[10px] text-gray-400 mt-1">
-                        Uploads directly to Supabase storage bucket `event-images`.
-                      </p>
-                    </div>
+
+                    {eventPosterStats && !eventPosterOptimizing && (
+                      <div className="p-2.5 bg-emerald-50/70 border border-emerald-200 rounded-xl flex items-center justify-between text-xs text-emerald-800">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+                          <span>Poster optimized successfully</span>
+                        </div>
+                        <div className="text-[11px] font-medium text-emerald-700">
+                          Original: {formatFileSize(eventPosterStats.originalSize)} • Optimized: {formatFileSize(eventPosterStats.optimizedSize)}
+                          {eventPosterStats.savedPercentage > 0 && ` (-${eventPosterStats.savedPercentage}%)`}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -2080,13 +2353,18 @@ export default function AdminDashboardPage() {
 
                   <button
                     type="submit"
-                    disabled={eventFormSaving}
+                    disabled={eventFormSaving || eventPosterOptimizing}
                     className="inline-flex items-center gap-1.5 px-5 py-2 bg-sky-500 hover:bg-sky-600 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
                   >
                     {eventFormSaving ? (
                       <>
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
                         <span>Saving...</span>
+                      </>
+                    ) : eventPosterOptimizing ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Optimizing Poster...</span>
                       </>
                     ) : (
                       <span>{editingEvent ? "Update Event" : "Create Event"}</span>
@@ -2198,31 +2476,57 @@ export default function AdminDashboardPage() {
                   <label className="block text-xs font-semibold text-zinc-700 mb-1">
                     Cover Photo
                   </label>
-                  <div className="flex items-center gap-3">
-                    {memoryCoverPreview && (
-                      <div className="w-20 h-20 rounded-xl overflow-hidden bg-gray-100 border border-gray-200 relative flex-shrink-0">
-                        <Image
-                          src={memoryCoverPreview}
-                          alt="Cover preview"
-                          fill
-                          sizes="80px"
-                          unoptimized={memoryCoverPreview.startsWith("blob:") || memoryCoverPreview.startsWith("http")}
-                          className="object-cover"
+                  <p className="text-[11px] text-gray-500 mb-2 font-medium">
+                    Maximum image size: 3 MB • Image will be optimized before upload
+                  </p>
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center gap-3">
+                      {memoryCoverPreview && (
+                        <div className="w-20 h-20 rounded-xl overflow-hidden bg-gray-100 border border-gray-200 relative flex-shrink-0">
+                          <Image
+                            src={memoryCoverPreview}
+                            alt="Cover preview"
+                            fill
+                            sizes="80px"
+                            unoptimized={memoryCoverPreview.startsWith("blob:") || memoryCoverPreview.startsWith("http")}
+                            className="object-cover"
+                          />
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <input
+                          type="file"
+                          accept="image/png, image/jpeg, image/webp"
+                          ref={memoryCoverInputRef}
+                          disabled={memoryCoverOptimizing}
+                          onChange={handleMemoryCoverChange}
+                          className="text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer disabled:opacity-50"
                         />
+                        <p className="text-[10px] text-gray-400 mt-1">
+                          Supports PNG, JPG, or WEBP (Max 3 MB)
+                        </p>
+                      </div>
+                    </div>
+
+                    {memoryCoverOptimizing && (
+                      <div className="flex items-center gap-2 p-2 bg-indigo-50 border border-indigo-200 rounded-xl text-xs text-indigo-700">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600 flex-shrink-0" />
+                        <span>{memoryCoverOptimizingStatus || "Optimizing cover image..."}</span>
                       </div>
                     )}
-                    <div className="flex-1">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        ref={memoryCoverInputRef}
-                        onChange={handleMemoryCoverChange}
-                        className="text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer"
-                      />
-                      <p className="text-[10px] text-gray-400 mt-1">
-                        Uploads directly to Supabase storage bucket `memory-images`.
-                      </p>
-                    </div>
+
+                    {memoryCoverStats && !memoryCoverOptimizing && (
+                      <div className="p-2.5 bg-emerald-50/70 border border-emerald-200 rounded-xl flex items-center justify-between text-xs text-emerald-800">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+                          <span>Cover optimized successfully</span>
+                        </div>
+                        <div className="text-[11px] font-medium text-emerald-700">
+                          Original: {formatFileSize(memoryCoverStats.originalSize)} • Optimized: {formatFileSize(memoryCoverStats.optimizedSize)}
+                          {memoryCoverStats.savedPercentage > 0 && ` (-${memoryCoverStats.savedPercentage}%)`}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -2230,20 +2534,25 @@ export default function AdminDashboardPage() {
                 {editingMemory && (
                   <div className="p-4 bg-gray-50 border border-gray-200 rounded-2xl space-y-4">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Camera className="w-4 h-4 text-indigo-600" />
-                        <h4 className="text-xs font-bold text-zinc-800">
-                          Gallery Photographs ({memoryPhotos.length})
-                        </h4>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <Camera className="w-4 h-4 text-indigo-600" />
+                          <h4 className="text-xs font-bold text-zinc-800">
+                            Gallery Photographs ({memoryPhotos.length})
+                          </h4>
+                        </div>
+                        <p className="text-[10px] text-gray-500 mt-0.5 font-medium">
+                          Maximum image size: 3 MB per image • Images will be optimized before upload
+                        </p>
                       </div>
 
                       <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors cursor-pointer">
-                        <Upload className="w-3.5 h-3.5" />
-                        <span>{uploadingPhotos ? "Uploading..." : "Upload Photos"}</span>
+                        {uploadingPhotos ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                        <span>{uploadingPhotos ? "Optimizing & Uploading..." : "Upload Photos"}</span>
                         <input
                           type="file"
                           multiple
-                          accept="image/*"
+                          accept="image/png, image/jpeg, image/webp"
                           disabled={uploadingPhotos}
                           onChange={handleUploadGalleryPhotos}
                           className="hidden"
@@ -2380,24 +2689,54 @@ export default function AdminDashboardPage() {
                           placeholder="Optional citation or poem snippet"
                           className="px-3 py-1.5 text-xs border border-amber-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white"
                         />
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => {
-                            if (e.target.files?.[0]) setNewWinnerFile(e.target.files[0]);
-                          }}
-                          className="text-xs text-gray-500 file:mr-2 file:py-1 file:px-2.5 file:rounded-xl file:border-0 file:text-[11px] file:font-semibold file:bg-amber-100 file:text-amber-800 hover:file:bg-amber-200 cursor-pointer"
-                        />
+                        <div className="flex flex-col gap-1">
+                          <p className="text-[10px] text-amber-800 font-medium">
+                            Max size: 3 MB • Photo will be optimized before upload
+                          </p>
+                          <div className="flex items-center gap-2">
+                            {newWinnerPreview && (
+                              <div className="w-7 h-7 rounded-lg overflow-hidden bg-amber-100 border border-amber-300 relative flex-shrink-0">
+                                <Image
+                                  src={newWinnerPreview}
+                                  alt="Winner preview"
+                                  fill
+                                  sizes="28px"
+                                  unoptimized
+                                  className="object-cover"
+                                />
+                              </div>
+                            )}
+                            <input
+                              type="file"
+                              accept="image/png, image/jpeg, image/webp"
+                              disabled={newWinnerOptimizing}
+                              onChange={handleWinnerFileChange}
+                              className="text-xs text-gray-500 file:mr-2 file:py-1 file:px-2.5 file:rounded-xl file:border-0 file:text-[11px] file:font-semibold file:bg-amber-100 file:text-amber-800 hover:file:bg-amber-200 cursor-pointer disabled:opacity-50"
+                            />
+                          </div>
+                          {newWinnerOptimizing && (
+                            <p className="text-[10px] text-amber-700 flex items-center gap-1 mt-0.5">
+                              <Loader2 className="w-3 h-3 animate-spin" /> Optimizing photo...
+                            </p>
+                          )}
+                          {newWinnerStats && !newWinnerOptimizing && (
+                            <p className="text-[10px] text-emerald-700 font-medium mt-0.5">
+                              ✓ Optimized ({formatFileSize(newWinnerStats.optimizedSize)})
+                            </p>
+                          )}
+                        </div>
                       </div>
 
                       <div className="flex justify-end">
                         <button
                           type="button"
-                          disabled={addingWinner || !newWinnerName.trim()}
+                          disabled={addingWinner || newWinnerOptimizing || !newWinnerName.trim()}
                           onClick={handleAddWinner}
                           className="inline-flex items-center gap-1 px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
                         >
                           {addingWinner ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : newWinnerOptimizing ? (
                             <Loader2 className="w-3.5 h-3.5 animate-spin" />
                           ) : (
                             <Plus className="w-3.5 h-3.5" />
@@ -2422,13 +2761,18 @@ export default function AdminDashboardPage() {
 
                   <button
                     type="submit"
-                    disabled={memoryFormSaving}
+                    disabled={memoryFormSaving || memoryCoverOptimizing}
                     className="inline-flex items-center gap-1.5 px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
                   >
                     {memoryFormSaving ? (
                       <>
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
                         <span>Saving...</span>
+                      </>
+                    ) : memoryCoverOptimizing ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Optimizing Cover...</span>
                       </>
                     ) : (
                       <span>{editingMemory ? "Update Memory" : "Create Memory"}</span>

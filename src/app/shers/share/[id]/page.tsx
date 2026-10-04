@@ -6,7 +6,12 @@ import { Inter } from "next/font/google";
 import Footer from "@/app/components/reuseable/reusable-home/Footer";
 import supabase from "@/config/supabase";
 import { ArrowLeft, AlertCircle } from "lucide-react";
-import { fetchPostEngagement } from "@/utils/engagement";
+import {
+  fetchPostEngagement,
+  fetchPostReactions,
+  createEmptyPostReactionsData,
+  type PostReactionsData,
+} from "@/utils/engagement";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -154,14 +159,22 @@ export default async function SharePage({
     }
   }
 
-  // Pre-fetch engagement counts for server rendering
+  // Pre-fetch engagement counts & reactions for server rendering
   let initialLikes = 0;
   let initialBookmarks = 0;
+  let initialReactions: PostReactionsData = createEmptyPostReactionsData();
+
   if (post.id) {
-    const engagementMap = await fetchPostEngagement([post.id]);
+    const [engagementMap, reactionsMap] = await Promise.all([
+      fetchPostEngagement([post.id]),
+      fetchPostReactions([post.id]),
+    ]);
     if (engagementMap[post.id]) {
       initialLikes = engagementMap[post.id].likes;
       initialBookmarks = engagementMap[post.id].bookmarks;
+    }
+    if (reactionsMap[post.id]) {
+      initialReactions = reactionsMap[post.id];
     }
   }
 
@@ -194,6 +207,7 @@ export default async function SharePage({
           userId={post.user_id}
           likeCount={initialLikes}
           bookmarkCount={initialBookmarks}
+          initialReactions={initialReactions}
         />
       </main>
 
