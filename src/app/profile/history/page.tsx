@@ -39,6 +39,7 @@ interface HistorySher {
   idx: number;
   likeCount: number;
   bookmarkCount: number;
+  authorInstagram?: string | null;
 }
 
 export default function ProfileHistoryPage() {
@@ -174,7 +175,7 @@ export default function ProfileHistoryPage() {
           fetchPostEngagement(postIds),
           supabase
             .from("profiles")
-            .select("user_id, name, photo_url")
+            .select("user_id, name, photo_url, instagram")
             .eq("user_id", currentUser.id)
             .maybeSingle(),
         ]);
@@ -188,6 +189,8 @@ export default function ProfileHistoryPage() {
           profileRes.data?.photo_url?.trim() ||
           getAvatarFromUser(currentUser) ||
           null;
+
+        const authorInstagram = profileRes.data?.instagram?.trim() || null;
 
         const formatted: HistorySher[] = postsData.map((p, ind) => {
           const engagement = engagementMap[p.id] || { likes: 0, bookmarks: 0 };
@@ -203,6 +206,7 @@ export default function ProfileHistoryPage() {
             idx: ind,
             likeCount: engagement.likes,
             bookmarkCount: engagement.bookmarks,
+            authorInstagram: authorInstagram,
           };
         });
 
@@ -239,13 +243,13 @@ export default function ProfileHistoryPage() {
         ...new Set((postsData || []).map((p) => p.user_id).filter(Boolean)),
       ];
 
-      let profilesMap: Record<string, { name?: string; photo_url?: string }> = {};
+      let profilesMap: Record<string, { name?: string; photo_url?: string; instagram?: string | null }> = {};
 
       const [profilesRes, engagementMap] = await Promise.all([
         userIds.length > 0
           ? supabase
               .from("profiles")
-              .select("user_id, name, photo_url")
+              .select("user_id, name, photo_url, instagram")
               .in("user_id", userIds)
           : Promise.resolve({ data: [] }),
         fetchPostEngagement(postIds),
@@ -281,6 +285,7 @@ export default function ProfileHistoryPage() {
           idx: ind,
           likeCount: engagement.likes,
           bookmarkCount: engagement.bookmarks,
+          authorInstagram: authorProfile?.instagram?.trim() || null,
         };
       });
 
@@ -513,6 +518,7 @@ export default function ProfileHistoryPage() {
                     status={val.status}
                     idx={val.idx}
                     userId={val.userId}
+                    Authorinstagram={val.authorInstagram}
                     currentUserId={currentUser?.id ?? null}
                     initialLiked={likedPostIds.has(val.id)}
                     initialBookmarked={bookmarkedPostIds.has(val.id)}

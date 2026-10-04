@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Feather,
+  Heading,
   Bold,
   Italic,
   Underline,
@@ -43,6 +44,7 @@ export default function SubmitShayariPage() {
 
   const [content, setContent] = useState("");
   const [rawText, setRawText] = useState("");
+  const [isHeader, setIsHeader] = useState(false);
   const [isBold, setIsBold] = useState(false);
   const [isItalic, setIsItalic] = useState(false);
   const [isUnderline, setIsUnderline] = useState(false);
@@ -67,6 +69,8 @@ export default function SubmitShayariPage() {
       setIsBold(document.queryCommandState("bold"));
       setIsItalic(document.queryCommandState("italic"));
       setIsUnderline(document.queryCommandState("underline"));
+      const block = (document.queryCommandValue("formatBlock") || "").toLowerCase();
+      setIsHeader(block === "h1" || block === "h2" || block === "h3" || block === "h4" || block === "header");
     } catch {
       // Ignore if document is unavailable or selection is outside
     }
@@ -105,6 +109,20 @@ export default function SubmitShayariPage() {
     if (editorRef.current) {
       editorRef.current.focus();
       document.execCommand(command, false);
+      syncState();
+    }
+  };
+
+  // Toggle Header (Heading block)
+  const toggleHeader = () => {
+    if (editorRef.current) {
+      editorRef.current.focus();
+      const currentBlock = (document.queryCommandValue("formatBlock") || "").toLowerCase();
+      if (currentBlock === "h3" || currentBlock === "h2" || currentBlock === "h1") {
+        document.execCommand("formatBlock", false, "<p>");
+      } else {
+        document.execCommand("formatBlock", false, "<h3>");
+      }
       syncState();
     }
   };
@@ -470,6 +488,26 @@ export default function SubmitShayariPage() {
                     {/* Formatting Toolbar */}
                     <div className="flex items-center justify-between px-3 py-1.5 bg-gray-50/90 border-b border-gray-200/80">
                       <div className="flex items-center gap-1">
+                        {/* Header Button */}
+                        <button
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            toggleHeader();
+                          }}
+                          title="Header (Heading)"
+                          aria-label="Header"
+                          className={clsx(
+                            "h-8 px-2.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer select-none",
+                            isHeader
+                              ? "bg-sky-100 text-sky-700 font-bold border border-sky-300 shadow-2xs"
+                              : "text-zinc-600 hover:text-zinc-900 hover:bg-gray-200/60 border border-transparent"
+                          )}
+                        >
+                          <Heading className="w-3.5 h-3.5 stroke-[2.5]" />
+                          <span className="font-bold text-xs">Header</span>
+                        </button>
+
                         {/* Bold Button */}
                         <button
                           type="button"
@@ -549,7 +587,7 @@ export default function SubmitShayariPage() {
                         <div className="absolute top-4 left-4 right-4 pointer-events-none text-sm text-gray-400 select-none leading-relaxed">
                           <p>लिखिए अपने दिल के अल्फ़ाज़...</p>
                           <p>Write your Shayari here...</p>
-                          <p className="text-xs text-gray-400/80 mt-1">Select text or type, then use Bold, Italic, or Underline above.</p>
+                          <p className="text-xs text-gray-400/80 mt-1">Select text or type, then use Header, Bold, Italic, or Underline above.</p>
                         </div>
                       )}
 
@@ -565,13 +603,13 @@ export default function SubmitShayariPage() {
                         onSelect={syncState}
                         onKeyDown={handleKeyDown}
                         onPaste={handlePaste}
-                        className="p-4 text-sm text-zinc-800 leading-relaxed outline-none min-h-[160px] whitespace-pre-wrap break-words"
+                        className="p-4 text-sm text-zinc-800 leading-relaxed outline-none min-h-[160px] whitespace-pre-wrap break-words [&_h1]:text-lg [&_h1]:font-bold [&_h1]:my-1.5 [&_h2]:text-lg [&_h2]:font-bold [&_h2]:my-1.5 [&_h3]:text-lg [&_h3]:font-bold [&_h3]:my-1.5 [&_h]:text-lg [&_h]:font-bold [&_h]:my-1.5"
                       />
                     </div>
                   </div>
 
                   <p className="text-[11px] text-gray-400 mt-1.5">
-                    Highlight any words or lines to style them directly with <strong>Bold</strong>, <em>Italic</em>, or <u>Underline</u>.
+                    Highlight any words or lines to style them directly with <strong>Header</strong>, <strong>Bold</strong>, <em>Italic</em>, or <u>Underline</u>.
                   </p>
                 </div>
 

@@ -36,20 +36,25 @@ function parseLineFormatting(line: string): React.ReactNode[] {
   if (!line) return [];
 
   // Regex pattern matching:
-  // 1. <h>...</h>
+  // 1. <h>...</h>, <h1>...</h1>, <h2>...</h2>, <h3>...</h3>
   // 2. <b>...</b> or <strong>...</strong> or **...**
   // 3. <i>...</i> or <em>...</em> or *...* or _..._
   // 4. <u>...</u>
-  const pattern = /(<h>[\s\S]*?<\/h>|<b>[\s\S]*?<\/b>|<strong>[\s\S]*?<\/strong>|\*\*[\s\S]*?\*\*|<i>[\s\S]*?<\/i>|<em>[\s\S]*?<\/em>|<u>[\s\S]*?<\/u>|\*[^\*\n]+?\*|_[^_\n]+?_)/g;
+  const pattern = /(<h>[\s\S]*?<\/h>|<h3>[\s\S]*?<\/h3>|<h2>[\s\S]*?<\/h2>|<h1>[\s\S]*?<\/h1>|<b>[\s\S]*?<\/b>|<strong>[\s\S]*?<\/strong>|\*\*[\s\S]*?\*\*|<i>[\s\S]*?<\/i>|<em>[\s\S]*?<\/em>|<u>[\s\S]*?<\/u>|\*[^\*\n]+?\*|_[^_\n]+?_)/g;
   const parts = line.split(pattern);
 
   return parts.map((part, idx) => {
     if (!part) return null;
 
-    // Heading: <h>text</h> → larger bold text (for titles inside poems)
-    if (part.startsWith("<h>") && part.endsWith("</h>")) {
-      const inner = part.slice(3, -4);
-      return <span key={idx} className="text-lg font-bold leading-snug block">{parseLineFormatting(inner)}</span>;
+    // Heading: <h>text</h> or <h3>text</h3> → larger bold text (for titles inside poems)
+    if (
+      (part.startsWith("<h>") && part.endsWith("</h>")) ||
+      (part.startsWith("<h3>") && part.endsWith("</h3>")) ||
+      (part.startsWith("<h2>") && part.endsWith("</h2>")) ||
+      (part.startsWith("<h1>") && part.endsWith("</h1>"))
+    ) {
+      const inner = part.replace(/^<h[1-3]?>/, "").replace(/<\/h[1-3]?>$/, "");
+      return <span key={idx} className="text-base sm:text-lg font-bold text-zinc-900 leading-snug block my-1">{parseLineFormatting(inner)}</span>;
     }
 
     // Bold: <b>text</b> or <strong>text</strong> or **text**
@@ -102,7 +107,7 @@ function parseLineFormatting(line: string): React.ReactNode[] {
 /**
  * Safely serializes an HTML contenteditable DOM tree into canonical formatted text
  * for storage in Supabase.
- * - Extracts clean text with bold (<b>), italic (<i>), underline (<u>) tags and \n for line breaks.
+ * - Extracts clean text with heading (<h>), bold (<b>), italic (<i>), underline (<u>) tags and \n for line breaks.
  * - Strips all scripts, iframes, inline CSS, and dangerous HTML.
  * - Computes plainText for accurate emptiness validation.
  */
@@ -132,6 +137,15 @@ export function serializeEditorToFormattedText(root: HTMLElement): { formatted: 
     }
 
     // Check formatting
+    const isHeading =
+      tag === "h1" ||
+      tag === "h2" ||
+      tag === "h3" ||
+      tag === "h4" ||
+      tag === "h5" ||
+      tag === "h6" ||
+      tag === "h";
+
     const isBold =
       tag === "b" ||
       tag === "strong" ||
@@ -151,9 +165,10 @@ export function serializeEditorToFormattedText(root: HTMLElement): { formatted: 
     let wrapped = childText;
     if (isUnderline && wrapped.trim()) wrapped = `<u>${wrapped}</u>`;
     if (isItalic && wrapped.trim()) wrapped = `<i>${wrapped}</i>`;
-    if (isBold && wrapped.trim()) wrapped = `<b>${wrapped}</b>`;
+    if (isBold && !isHeading && wrapped.trim()) wrapped = `<b>${wrapped}</b>`;
+    if (isHeading && wrapped.trim()) wrapped = `<h>${wrapped}</h>`;
 
-    if (tag === "div" || tag === "p") {
+    if (tag === "div" || tag === "p" || isHeading) {
       return wrapped.endsWith("\n") ? wrapped : wrapped + "\n";
     }
 

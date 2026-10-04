@@ -1,7 +1,7 @@
 "use client";
 
 import { logger } from "@/utils/logger";
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -33,6 +33,9 @@ import {
   Activity,
   Filter,
   RefreshCw,
+  Search,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import Footer from "@/app/components/reuseable/reusable-home/Footer";
 import { getAvatarFromUser } from "@/utils/profile";
@@ -139,11 +142,15 @@ export default function AdminDashboardPage() {
   // ----------------- 1. SHAYARI STATE -----------------
   const [posts, setPosts] = useState<PostItem[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(false);
-  const [activeTab, setActiveTab] = useState<"pending" | "approved" | "rejected">(
-    "pending"
-  );
+  const [activeTab, setActiveTab] = useState<"pending" | "approved" | "rejected">("pending");
   const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+  // Pagination + search for posts
+  const PAGE_SIZE = 20;
+  const [postsPage, setPostsPage] = useState(0);
+  const [postsTotalCount, setPostsTotalCount] = useState(0);
+  const [postsSearchInput, setPostsSearchInput] = useState("");
+  const [postsSearch, setPostsSearch] = useState("");
 
   // Close lightbox on Escape key
   useEffect(() => {
@@ -158,6 +165,11 @@ export default function AdminDashboardPage() {
   // ----------------- 2. EVENTS STATE ------------------
   const [adminEvents, setAdminEvents] = useState<AdminEvent[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(false);
+  const [eventsPage, setEventsPage] = useState(0);
+  const [eventsTotalCount, setEventsTotalCount] = useState(0);
+  const [eventsSearchInput, setEventsSearchInput] = useState("");
+  const [eventsSearch, setEventsSearch] = useState("");
+  const [refetchEventsKey, setRefetchEventsKey] = useState(0);
 
   // Event Add / Edit Modal state
   const [eventModalOpen, setEventModalOpen] = useState(false);
@@ -187,6 +199,11 @@ export default function AdminDashboardPage() {
   // ----------------- 3. MEMORIES STATE -----------------
   const [adminMemories, setAdminMemories] = useState<AdminMemory[]>([]);
   const [loadingMemories, setLoadingMemories] = useState(false);
+  const [memoriesPage, setMemoriesPage] = useState(0);
+  const [memoriesTotalCount, setMemoriesTotalCount] = useState(0);
+  const [memoriesSearchInput, setMemoriesSearchInput] = useState("");
+  const [memoriesSearch, setMemoriesSearch] = useState("");
+  const [refetchMemoriesKey, setRefetchMemoriesKey] = useState(0);
 
   // Memory Add / Edit Modal state
   const [memoryModalOpen, setMemoryModalOpen] = useState(false);
@@ -290,7 +307,7 @@ export default function AdminDashboardPage() {
     };
   }, [router]);
 
-  // 2. Fetch posts whenever activeTab changes
+  // 2. Fetch posts whenever activeTab / postsPage / postsSearch changes
   useEffect(() => {
     if (!isAdmin) return;
 
@@ -300,21 +317,32 @@ export default function AdminDashboardPage() {
       try {
         setLoadingPosts(true);
 
-        const { data: postsData, error: postsError } = await supabase
+        const from = postsPage * PAGE_SIZE;
+        const to = from + PAGE_SIZE - 1;
+
+        let query = supabase
           .from("posts")
-          .select("*")
+          .select("*", { count: "exact" })
           .eq("status", activeTab)
-          .order("created_at", { ascending: activeTab === "pending" });
+          .order("created_at", { ascending: activeTab === "pending" })
+          .range(from, to);
+
+        if (postsSearch.trim()) {
+          query = query.ilike("content", `%${postsSearch.trim()}%`);
+        }
+
+        const { data: postsData, error: postsError, count } = await query;
 
         if (postsError) throw postsError;
+
+        if (isMounted) setPostsTotalCount(count ?? 0);
 
         // Fetch corresponding author profiles
         const userIds = [
           ...new Set((postsData || []).map((p) => p.user_id).filter(Boolean)),
         ];
 
-        let profilesMap: Record<string, { name?: string; photo_url?: string }> =
-          {};
+        let profilesMap: Record<string, { name?: string; photo_url?: string }> = {};
 
         if (userIds.length > 0) {
           const { data: profilesData } = await supabase
@@ -331,19 +359,12 @@ export default function AdminDashboardPage() {
 
         if (isMounted) {
           const formatted: PostItem[] = (postsData || []).map((p) => {
-            // Author resolution architecture:
-            // 1. public.profiles.name via posts.user_id
-            // 2. fallback "Anonymous"
             const authorProfile = p.user_id ? profilesMap[p.user_id] : null;
             const displayAuthor = authorProfile?.name?.trim() || "Anonymous";
-
             const authorPhoto =
               authorProfile?.photo_url?.trim() ||
-              (p.user_id && p.user_id === user?.id
-                ? getAvatarFromUser(user)
-                : null) ||
+              (p.user_id && p.user_id === user?.id ? getAvatarFromUser(user) : null) ||
               null;
-
             return {
               id: p.id,
               user_id: p.user_id,
@@ -357,7 +378,6 @@ export default function AdminDashboardPage() {
               author_email: (p as any).author_email || null,
             };
           });
-
           setPosts(formatted);
         }
       } catch (err: any) {
@@ -365,9 +385,7 @@ export default function AdminDashboardPage() {
         if (isMounted) {
           setFeedbackMessage({
             type: "error",
-            text:
-              err.message ||
-              "Failed to load moderation posts. Please try again.",
+            text: err.message || "Failed to load moderation posts. Please try again.",
           });
         }
       } finally {
@@ -380,73 +398,93 @@ export default function AdminDashboardPage() {
     return () => {
       isMounted = false;
     };
-  }, [isAdmin, activeTab]);
+  }, [isAdmin, activeTab, postsPage, postsSearch]);
 
-  // 3. Fetch events
-  const fetchAdminEvents = useCallback(async () => {
-    if (!isAdmin) return;
-
-    try {
-      setLoadingEvents(true);
-      const { data, error } = await supabase
-        .from("events")
-        .select("*")
-        .order("id", { ascending: true });
-
-      if (error) throw error;
-      setAdminEvents(data || []);
-    } catch (err: any) {
-      logger.error("Failed to load admin events:", err);
-      setFeedbackMessage({
-        type: "error",
-        text: err.message || "Failed to load events.",
-      });
-    } finally {
-      setLoadingEvents(false);
-    }
-  }, [isAdmin]);
-
+  // 3. Fetch events — server-side pagination + search
   useEffect(() => {
-    if (isAdmin) {
-      fetchAdminEvents();
-    }
-  }, [isAdmin, fetchAdminEvents]);
-
-  // 4. Fetch memories
-  const fetchAdminMemories = useCallback(async () => {
     if (!isAdmin) return;
+    let isMounted = true;
 
-    try {
-      setLoadingMemories(true);
-      const { data, error } = await supabase
-        .from("memories")
-        .select("*, memory_photos(id)")
-        .order("id", { ascending: false });
+    async function fetchEvents() {
+      try {
+        setLoadingEvents(true);
+        const from = eventsPage * PAGE_SIZE;
+        const to = from + PAGE_SIZE - 1;
 
-      if (error) throw error;
+        let query = supabase
+          .from("events")
+          .select("*", { count: "exact" })
+          .order("id", { ascending: true })
+          .range(from, to);
 
-      const formatted: AdminMemory[] = (data || []).map((row: any) => ({
-        ...row,
-        photos_count: Array.isArray(row.memory_photos) ? row.memory_photos.length : 0,
-      }));
+        if (eventsSearch.trim()) {
+          query = query.ilike("title", `%${eventsSearch.trim()}%`);
+        }
 
-      setAdminMemories(formatted);
-    } catch (err: any) {
-      logger.error("Failed to load admin memories:", err);
-      setFeedbackMessage({
-        type: "error",
-        text: err.message || "Failed to load memories.",
-      });
-    } finally {
-      setLoadingMemories(false);
+        const { data, error, count } = await query;
+        if (error) throw error;
+        if (isMounted) {
+          setAdminEvents(data || []);
+          setEventsTotalCount(count ?? 0);
+        }
+      } catch (err: any) {
+        logger.error("Failed to load admin events:", err);
+        if (isMounted)
+          setFeedbackMessage({ type: "error", text: err.message || "Failed to load events." });
+      } finally {
+        if (isMounted) setLoadingEvents(false);
+      }
     }
-  }, [isAdmin]);
 
+    fetchEvents();
+    return () => { isMounted = false; };
+  }, [isAdmin, eventsPage, eventsSearch, refetchEventsKey]);
+
+  // 4. Fetch memories — server-side pagination + search
   useEffect(() => {
-    if (isAdmin) {
-      fetchAdminMemories();
+    if (!isAdmin) return;
+    let isMounted = true;
+
+    async function fetchMemories() {
+      try {
+        setLoadingMemories(true);
+        const from = memoriesPage * PAGE_SIZE;
+        const to = from + PAGE_SIZE - 1;
+
+        let query = supabase
+          .from("memories")
+          .select("*, memory_photos(id)", { count: "exact" })
+          .order("id", { ascending: false })
+          .range(from, to);
+
+        if (memoriesSearch.trim()) {
+          query = query.ilike("title", `%${memoriesSearch.trim()}%`);
+        }
+
+        const { data, error, count } = await query;
+        if (error) throw error;
+
+        if (isMounted) {
+          const formatted: AdminMemory[] = (data || []).map((row: any) => ({
+            ...row,
+            photos_count: Array.isArray(row.memory_photos) ? row.memory_photos.length : 0,
+          }));
+          setAdminMemories(formatted);
+          setMemoriesTotalCount(count ?? 0);
+        }
+      } catch (err: any) {
+        logger.error("Failed to load admin memories:", err);
+        if (isMounted)
+          setFeedbackMessage({ type: "error", text: err.message || "Failed to load memories." });
+      } finally {
+        if (isMounted) setLoadingMemories(false);
+      }
     }
-  }, [isAdmin, fetchAdminMemories]);
+
+    fetchMemories();
+    return () => { isMounted = false; };
+  }, [isAdmin, memoriesPage, memoriesSearch, refetchMemoriesKey]);
+
 
   // ----------------- ACTIVITY LOG FETCH -----------------
   const fetchActivityLogs = async (filter: "all" | "posts" | "events" | "memories" | "admins" = "all") => {
@@ -807,7 +845,7 @@ export default function AdminDashboardPage() {
 
       setEventModalOpen(false);
       setEditingEvent(null);
-      fetchAdminEvents();
+      setRefetchEventsKey((k) => k + 1);
     } catch (err: any) {
       logger.error("Save event error:", err);
       setEventFormError(err.message || "Failed to save event. Please check inputs.");
@@ -852,7 +890,7 @@ export default function AdminDashboardPage() {
       });
 
       setDeletingEvent(null);
-      fetchAdminEvents();
+      setRefetchEventsKey((k) => k + 1);
     } catch (err: any) {
       logger.error("Delete event error:", err);
       setDeleteEventError(err.message || "Failed to delete event. Please try again.");
@@ -1064,7 +1102,8 @@ export default function AdminDashboardPage() {
         .order("id", { ascending: true });
 
       setMemoryPhotos(pData || []);
-      fetchAdminMemories();
+      setRefetchMemoriesKey((k) => k + 1);
+
     } catch (err: any) {
       logger.error("Gallery upload error:", err);
       setMemoryFormError(err.message || "Failed to upload one or more photos.");
@@ -1097,7 +1136,8 @@ export default function AdminDashboardPage() {
       }
 
       setMemoryPhotos((prev) => prev.filter((p) => p.id !== photoId));
-      fetchAdminMemories();
+      setRefetchMemoriesKey((k) => k + 1);
+
     } catch (err: any) {
       logger.error("Failed to delete photo:", err);
       setMemoryFormError(err.message || "Failed to delete photo.");
@@ -1346,7 +1386,8 @@ export default function AdminDashboardPage() {
 
       setMemoryModalOpen(false);
       setEditingMemory(null);
-      fetchAdminMemories();
+      setRefetchMemoriesKey((k) => k + 1);
+
     } catch (err: any) {
       logger.error("Save memory error:", err);
       setMemoryFormError(err.message || "Failed to save memory.");
@@ -1405,7 +1446,8 @@ export default function AdminDashboardPage() {
       });
 
       setDeletingMemory(null);
-      fetchAdminMemories();
+      setRefetchMemoriesKey((k) => k + 1);
+
     } catch (err: any) {
       logger.error("Delete memory error:", err);
       setDeleteMemoryError(err.message || "Failed to delete memory.");
@@ -1536,7 +1578,7 @@ export default function AdminDashboardPage() {
             onClick={() => {
               setMainSection("events");
               setFeedbackMessage(null);
-              fetchAdminEvents();
+              setRefetchEventsKey((k) => k + 1);
             }}
             className={`flex items-center gap-2 px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl transition-all cursor-pointer ${
               mainSection === "events"
@@ -1556,7 +1598,7 @@ export default function AdminDashboardPage() {
             onClick={() => {
               setMainSection("memories");
               setFeedbackMessage(null);
-              fetchAdminMemories();
+              setRefetchMemoriesKey((k) => k + 1);
             }}
             className={`flex items-center gap-2 px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl transition-all cursor-pointer ${
               mainSection === "memories"
@@ -1610,43 +1652,75 @@ export default function AdminDashboardPage() {
         {/* ================= SECTION 1: SHAYARI MODERATION ================= */}
         {mainSection === "shayari" && (
           <>
-            <div className="flex items-center gap-2 mb-6 border-b border-gray-200 pb-1">
+            <div className="flex flex-wrap items-center gap-2 mb-4 border-b border-gray-200 pb-3">
               <button
                 type="button"
-                onClick={() => setActiveTab("pending")}
+                onClick={() => { setActiveTab("pending"); setPostsPage(0); setPostsSearch(""); setPostsSearchInput(""); }}
                 className={`px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-colors cursor-pointer ${
                   activeTab === "pending"
                     ? "bg-sky-500 text-white shadow-xs"
                     : "text-gray-500 hover:text-zinc-800 hover:bg-gray-100"
                 }`}
               >
-                Pending Review {activeTab === "pending" && `(${posts.length})`}
+                Pending Review {activeTab === "pending" && `(${postsTotalCount})`}
               </button>
 
               <button
                 type="button"
-                onClick={() => setActiveTab("approved")}
+                onClick={() => { setActiveTab("approved"); setPostsPage(0); setPostsSearch(""); setPostsSearchInput(""); }}
                 className={`px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-colors cursor-pointer ${
                   activeTab === "approved"
                     ? "bg-emerald-600 text-white shadow-xs"
                     : "text-gray-500 hover:text-zinc-800 hover:bg-gray-100"
                 }`}
               >
-                Approved {activeTab === "approved" && `(${posts.length})`}
+                Approved {activeTab === "approved" && `(${postsTotalCount})`}
               </button>
 
               <button
                 type="button"
-                onClick={() => setActiveTab("rejected")}
+                onClick={() => { setActiveTab("rejected"); setPostsPage(0); setPostsSearch(""); setPostsSearchInput(""); }}
                 className={`px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-colors cursor-pointer ${
                   activeTab === "rejected"
                     ? "bg-red-600 text-white shadow-xs"
                     : "text-gray-500 hover:text-zinc-800 hover:bg-gray-100"
                 }`}
               >
-                Rejected {activeTab === "rejected" && `(${posts.length})`}
+                Rejected {activeTab === "rejected" && `(${postsTotalCount})`}
               </button>
             </div>
+
+            {/* Search bar for Shayari */}
+            <form
+              onSubmit={(e) => { e.preventDefault(); setPostsPage(0); setPostsSearch(postsSearchInput); }}
+              className="flex items-center gap-2 mb-5"
+            >
+              <div className="relative flex-1 max-w-sm">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  value={postsSearchInput}
+                  onChange={(e) => setPostsSearchInput(e.target.value)}
+                  placeholder="Search by content…"
+                  className="w-full pl-9 pr-3 py-2 text-sm bg-white border border-gray-200 rounded-xl shadow-xs focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-400 transition"
+                />
+              </div>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-sky-500 hover:bg-sky-600 text-white text-xs font-semibold rounded-xl shadow-xs transition cursor-pointer"
+              >
+                Search
+              </button>
+              {postsSearch && (
+                <button
+                  type="button"
+                  onClick={() => { setPostsSearch(""); setPostsSearchInput(""); setPostsPage(0); }}
+                  className="px-3 py-2 text-xs font-semibold text-gray-500 hover:text-zinc-800 hover:bg-gray-100 rounded-xl transition cursor-pointer"
+                >
+                  Clear
+                </button>
+              )}
+            </form>
 
             {loadingPosts ? (
               <div className="py-20 flex flex-col items-center justify-center gap-3">
@@ -1670,7 +1744,7 @@ export default function AdminDashboardPage() {
                 </p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {posts.map((post) => {
                   const isActing = actionLoadingId === post.id;
                   const dateLabel = new Date(post.created_at).toLocaleDateString(
@@ -1729,7 +1803,7 @@ export default function AdminDashboardPage() {
                       </div>
 
                       {/* 2. Post Text */}
-                      <div className="text-sm text-zinc-700 whitespace-pre-line leading-relaxed pl-1">
+                      <div className="text-sm text-zinc-700 whitespace-pre-line leading-relaxed pl-1 flex-1">
                         {renderFormattedText(post.content)}
                       </div>
 
@@ -1760,9 +1834,8 @@ export default function AdminDashboardPage() {
                         </div>
                       )}
 
-                      {/* 4. Approve / Reject Controls (Below the Post Image) */}
+                      {/* 4. Approve / Reject Controls */}
                       <div className="pt-3 border-t border-gray-100 flex items-center gap-3">
-                        {/* Tab: Pending Review */}
                         {activeTab === "pending" && (
                           <>
                             <button
@@ -1771,59 +1844,37 @@ export default function AdminDashboardPage() {
                               onClick={() => handleReject(post.id)}
                               className="inline-flex items-center gap-1.5 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-700 text-xs font-semibold rounded-xl border border-red-200 transition-colors disabled:opacity-50 cursor-pointer"
                             >
-                              {isActing ? (
-                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                              ) : (
-                                <X className="w-3.5 h-3.5" />
-                              )}
+                              {isActing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
                               <span>Reject</span>
                             </button>
-
                             <button
                               type="button"
                               disabled={isActing}
                               onClick={() => handleApprove(post.id)}
                               className="inline-flex items-center gap-1.5 px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
                             >
-                              {isActing ? (
-                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                              ) : (
-                                <Check className="w-3.5 h-3.5" />
-                              )}
+                              {isActing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
                               <span>Approve</span>
                             </button>
                           </>
                         )}
-
-                        {/* Tab: Approved */}
                         {activeTab === "approved" && (
                           <>
-                            <button
-                              type="button"
-                              disabled
-                              className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-50 text-emerald-800 text-xs font-semibold rounded-xl border border-emerald-300 opacity-80 cursor-default select-none"
-                            >
+                            <button type="button" disabled className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-50 text-emerald-800 text-xs font-semibold rounded-xl border border-emerald-300 opacity-80 cursor-default select-none">
                               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                              <span>Approved (Current)</span>
+                              <span>Approved</span>
                             </button>
-
                             <button
                               type="button"
                               disabled={isActing}
                               onClick={() => handleReject(post.id)}
                               className="inline-flex items-center gap-1.5 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-700 text-xs font-semibold rounded-xl border border-red-200 transition-colors disabled:opacity-50 cursor-pointer"
                             >
-                              {isActing ? (
-                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                              ) : (
-                                <X className="w-3.5 h-3.5" />
-                              )}
+                              {isActing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
                               <span>Reject</span>
                             </button>
                           </>
                         )}
-
-                        {/* Tab: Rejected */}
                         {activeTab === "rejected" && (
                           <>
                             <button
@@ -1832,21 +1883,12 @@ export default function AdminDashboardPage() {
                               onClick={() => handleApprove(post.id)}
                               className="inline-flex items-center gap-1.5 px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
                             >
-                              {isActing ? (
-                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                              ) : (
-                                <Check className="w-3.5 h-3.5" />
-                              )}
+                              {isActing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
                               <span>Approve</span>
                             </button>
-
-                            <button
-                              type="button"
-                              disabled
-                              className="inline-flex items-center gap-1.5 px-4 py-2 bg-red-50 text-red-800 text-xs font-semibold rounded-xl border border-red-300 opacity-80 cursor-default select-none"
-                            >
+                            <button type="button" disabled className="inline-flex items-center gap-1.5 px-4 py-2 bg-red-50 text-red-800 text-xs font-semibold rounded-xl border border-red-300 opacity-80 cursor-default select-none">
                               <XCircle className="w-3.5 h-3.5 text-red-600" />
-                              <span>Rejected (Current)</span>
+                              <span>Rejected</span>
                             </button>
                           </>
                         )}
@@ -1856,19 +1898,49 @@ export default function AdminDashboardPage() {
                 })}
               </div>
             )}
+
+            {/* Posts Pagination */}
+            {postsTotalCount > PAGE_SIZE && (
+              <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200">
+                <p className="text-xs text-gray-500">
+                  Showing {postsPage * PAGE_SIZE + 1}–{Math.min((postsPage + 1) * PAGE_SIZE, postsTotalCount)} of {postsTotalCount}
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={postsPage === 0}
+                    onClick={() => setPostsPage((p) => p - 1)}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg shadow-xs hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" /> Prev
+                  </button>
+                  <span className="text-xs font-semibold text-zinc-700 px-2">
+                    Page {postsPage + 1} / {Math.ceil(postsTotalCount / PAGE_SIZE)}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={(postsPage + 1) * PAGE_SIZE >= postsTotalCount}
+                    onClick={() => setPostsPage((p) => p + 1)}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg shadow-xs hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+                  >
+                    Next <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            )}
           </>
         )}
 
         {/* ================= SECTION 2: EVENTS MANAGEMENT ================= */}
         {mainSection === "events" && (
           <div>
-            <div className="flex items-center justify-between gap-4 mb-6 pb-2">
+            <div className="flex items-center justify-between gap-4 mb-4 pb-2">
               <div className="flex items-center gap-2">
                 <h2 className="text-base font-bold text-zinc-800">
                   Scheduled Events Directory
                 </h2>
                 <span className="px-2 py-0.5 text-xs font-semibold bg-gray-100 text-gray-600 rounded-full">
-                  {adminEvents.length} Total
+                  {eventsTotalCount} Total
                 </span>
               </div>
 
@@ -1881,6 +1953,35 @@ export default function AdminDashboardPage() {
                 <span>Add New Event</span>
               </button>
             </div>
+
+            {/* Search bar for Events */}
+            <form
+              onSubmit={(e) => { e.preventDefault(); setEventsPage(0); setEventsSearch(eventsSearchInput); }}
+              className="flex items-center gap-2 mb-5"
+            >
+              <div className="relative flex-1 max-w-sm">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  value={eventsSearchInput}
+                  onChange={(e) => setEventsSearchInput(e.target.value)}
+                  placeholder="Search events by title…"
+                  className="w-full pl-9 pr-3 py-2 text-sm bg-white border border-gray-200 rounded-xl shadow-xs focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-400 transition"
+                />
+              </div>
+              <button type="submit" className="px-4 py-2 bg-sky-500 hover:bg-sky-600 text-white text-xs font-semibold rounded-xl shadow-xs transition cursor-pointer">
+                Search
+              </button>
+              {eventsSearch && (
+                <button
+                  type="button"
+                  onClick={() => { setEventsSearch(""); setEventsSearchInput(""); setEventsPage(0); }}
+                  className="px-3 py-2 text-xs font-semibold text-gray-500 hover:text-zinc-800 hover:bg-gray-100 rounded-xl transition cursor-pointer"
+                >
+                  Clear
+                </button>
+              )}
+            </form>
 
             {loadingEvents ? (
               <div className="py-20 flex flex-col items-center justify-center gap-3">
@@ -2010,19 +2111,49 @@ export default function AdminDashboardPage() {
                 ))}
               </div>
             )}
+
+            {/* Events Pagination */}
+            {eventsTotalCount > PAGE_SIZE && (
+              <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200">
+                <p className="text-xs text-gray-500">
+                  Showing {eventsPage * PAGE_SIZE + 1}–{Math.min((eventsPage + 1) * PAGE_SIZE, eventsTotalCount)} of {eventsTotalCount}
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={eventsPage === 0}
+                    onClick={() => setEventsPage((p) => p - 1)}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg shadow-xs hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" /> Prev
+                  </button>
+                  <span className="text-xs font-semibold text-zinc-700 px-2">
+                    Page {eventsPage + 1} / {Math.ceil(eventsTotalCount / PAGE_SIZE)}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={(eventsPage + 1) * PAGE_SIZE >= eventsTotalCount}
+                    onClick={() => setEventsPage((p) => p + 1)}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg shadow-xs hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+                  >
+                    Next <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
         {/* ================= SECTION 3: MEMORIES MANAGEMENT ================= */}
         {mainSection === "memories" && (
           <div>
-            <div className="flex items-center justify-between gap-4 mb-6 pb-2">
+            <div className="flex items-center justify-between gap-4 mb-4 pb-2">
               <div className="flex items-center gap-2">
                 <h2 className="text-base font-bold text-zinc-800">
                   Published Memories &amp; Visual Archives
                 </h2>
                 <span className="px-2 py-0.5 text-xs font-semibold bg-gray-100 text-gray-600 rounded-full">
-                  {adminMemories.length} Total
+                  {memoriesTotalCount} Total
                 </span>
               </div>
 
@@ -2035,6 +2166,35 @@ export default function AdminDashboardPage() {
                 <span>Add New Memory</span>
               </button>
             </div>
+
+            {/* Search bar for Memories */}
+            <form
+              onSubmit={(e) => { e.preventDefault(); setMemoriesPage(0); setMemoriesSearch(memoriesSearchInput); }}
+              className="flex items-center gap-2 mb-5"
+            >
+              <div className="relative flex-1 max-w-sm">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  value={memoriesSearchInput}
+                  onChange={(e) => setMemoriesSearchInput(e.target.value)}
+                  placeholder="Search memories by title…"
+                  className="w-full pl-9 pr-3 py-2 text-sm bg-white border border-gray-200 rounded-xl shadow-xs focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition"
+                />
+              </div>
+              <button type="submit" className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl shadow-xs transition cursor-pointer">
+                Search
+              </button>
+              {memoriesSearch && (
+                <button
+                  type="button"
+                  onClick={() => { setMemoriesSearch(""); setMemoriesSearchInput(""); setMemoriesPage(0); }}
+                  className="px-3 py-2 text-xs font-semibold text-gray-500 hover:text-zinc-800 hover:bg-gray-100 rounded-xl transition cursor-pointer"
+                >
+                  Clear
+                </button>
+              )}
+            </form>
 
             {loadingMemories ? (
               <div className="py-20 flex flex-col items-center justify-center gap-3">
@@ -2177,6 +2337,36 @@ export default function AdminDashboardPage() {
                     </div>
                   );
                 })}
+              </div>
+            )}
+
+            {/* Memories Pagination */}
+            {memoriesTotalCount > PAGE_SIZE && (
+              <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200">
+                <p className="text-xs text-gray-500">
+                  Showing {memoriesPage * PAGE_SIZE + 1}–{Math.min((memoriesPage + 1) * PAGE_SIZE, memoriesTotalCount)} of {memoriesTotalCount}
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={memoriesPage === 0}
+                    onClick={() => setMemoriesPage((p) => p - 1)}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg shadow-xs hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" /> Prev
+                  </button>
+                  <span className="text-xs font-semibold text-zinc-700 px-2">
+                    Page {memoriesPage + 1} / {Math.ceil(memoriesTotalCount / PAGE_SIZE)}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={(memoriesPage + 1) * PAGE_SIZE >= memoriesTotalCount}
+                    onClick={() => setMemoriesPage((p) => p + 1)}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg shadow-xs hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+                  >
+                    Next <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
             )}
           </div>

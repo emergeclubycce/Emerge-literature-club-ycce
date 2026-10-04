@@ -174,7 +174,7 @@ function ShersContent() {
 
         let profilesMap: Record<
           string,
-          { name?: string; photo_url?: string }
+          { name?: string; photo_url?: string; instagram?: string | null }
         > = {};
 
         // Batch fetch author profiles, total engagement counts, and reaction data in parallel for ONLY these 20 posts
@@ -182,7 +182,7 @@ function ShersContent() {
           userIds.length > 0
             ? supabase
                 .from("profiles")
-                .select("user_id, name, photo_url")
+                .select("user_id, name, photo_url, instagram")
                 .in("user_id", userIds)
             : Promise.resolve({ data: [] }),
           fetchPostEngagement(postIds),
@@ -258,6 +258,7 @@ function ShersContent() {
             idx: from + ind,
             likeCount: engagement.likes,
             bookmarkCount: engagement.bookmarks,
+            authorInstagram: authorProfile?.instagram?.trim() || null,
             reactions: reactionsData,
           };
         });
@@ -411,6 +412,7 @@ function ShersContent() {
                       createdAt={val.createdAt}
                       idx={val.idx}
                       userId={val.userId}
+                      Authorinstagram={val.authorInstagram}
                       currentUserId={currentUser?.id ?? null}
                       initialLiked={
                         typeof val.id === "number"

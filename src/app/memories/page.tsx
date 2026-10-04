@@ -421,28 +421,34 @@ export default function MemoriesPage() {
                     <span>FOUNDATION DISPATCH</span>
                   </div>
 
-                  {/* Editorial Text (160 words — cleanly within 100 - 200 words requirement) */}
+                  {/* Editorial Text (225 words — cleanly within 200 - 300 words requirement) */}
                   <div
                     className={`${newsreader.className} text-sm sm:text-base leading-relaxed text-[#292524] text-justify space-y-3 pt-2`}
                   >
                     <p className="first-letter:float-left first-letter:text-6xl first-letter:font-black first-letter:font-serif first-letter:mr-3 first-letter:leading-none first-letter:text-[#1c1917]">
                       Founded on June 21, 2020, amidst global quarantine, the Emerge Literature Club was ignited by a
                       singular conviction: that inside every engineering student at YCCE lives an artist yearning for a
-                      stage. In an academic world of formulas, circuit schematics, and code, spoken literature provides the
-                      heartbeat that keeps our humanity vibrant.
+                      stage. In an academic environment dominated by complex equations, circuit schematics, and rigorous code,
+                      spoken literature provides the indispensable heartbeat that keeps our humanity, passion, and empathy vibrant.
                     </p>
                     <p>
-                      What began as a virtual sanctuary for heartfelt verse rapidly blossomed into the college&apos;s
-                      premier creative collective. Over five glorious years, Emerge has hosted 25+ signature gatherings,
-                      brought over 500 verses to life, and nurtured a thriving brotherhood and sisterhood of 100+ active
-                      student writers, orators, and performers.
+                      What began as an intimate virtual sanctuary for heartfelt verse rapidly blossomed into the college&apos;s
+                      premier creative collective. Over five transformative years, Emerge has orchestrated 25+ signature gatherings—from
+                      spirited open-mic evenings and competitive slams to soulful literary baithaks—bringing over 500 original
+                      verses to life. Along the journey, it has fostered a tight-knit family of more than 100 active student writers,
+                      orators, visual chroniclers, and stage performers.
                     </p>
                     <p>
-                      Originally founded as the Emerge Poetry Club, the collective formally expanded on September 3, 2025,
-                      into the Emerge Literature Club to embrace the full spectrum of literary arts—multilingual poetry in
-                      Hindi, Urdu, Marathi, and English, sharp satire, dramatic storytelling, and debate. Today, Emerge remains
-                      a warm, judgment-free hearth where introverts conquer stage fright, unspoken emotions find belonging,
-                      and young minds truly emerge.
+                      Originally established as the Emerge Poetry Club, the collective formally expanded on September 3, 2025,
+                      into the Emerge Literature Club. This deliberate evolution embraced the complete spectrum of literary expression:
+                      multilingual poetry across Hindi, Urdu, Marathi, and English, poignant storytelling, sharp theatrical monologue,
+                      and nuanced debate.
+                    </p>
+                    <p>
+                      Today, Emerge stands as an inclusive, judgment-free hearth at YCCE where shy introverts conquer stage fright,
+                      unspoken emotions discover profound resonance, and lifelong artistic camaraderie is forged. Here, words transcend
+                      the notebook page to ignite listeners&apos; hearts, inspiring every young scholar to discover their authentic voice and
+                      truly emerge.
                     </p>
                   </div>
                 </div>

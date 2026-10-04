@@ -9,7 +9,8 @@ function Footer() {
                 </div>
                
                  <h1 className='mt-7 md:text-[16px] text-sm text-center px-2'>
-                        Designed & Developed with ❤️ by  <a href="https://github.com/MUCHKUNDRAJE"><span className='hover:underline'>  Muchkundraje thote  </span> </a>
+                        Designed & Developed with ❤️ by  <a href="https://github.com/MUCHKUNDRAJE"><span className='hover:underline'>  Muchkundraje thote  </span> </a> <br />
+                         and<a href=""><span className='hover:underline'> Kshitij Kamdi </span> </a>
                  </h1>
       </footer>
   )

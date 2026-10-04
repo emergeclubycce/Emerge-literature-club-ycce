@@ -798,13 +798,15 @@ function SherCard({
             </span>
           )}
 
-          {/* More Options (...) Button */}
+          {/* Instagram Icon — only shown when author has set their Instagram */}
           {Authorinstagram ? (
             <Link
               href={Authorinstagram}
               target="_blank"
               rel="noopener noreferrer"
-              className="p-1.5 text-zinc-600 hover:text-zinc-900 active:scale-95 transition-transform cursor-pointer"
+              className="p-1.5 text-pink-500 hover:text-pink-600 active:scale-95 transition-transform cursor-pointer"
+              title="Author's Instagram"
+              aria-label="Instagram"
             >
               <Instagram size={18} />
             </Link>

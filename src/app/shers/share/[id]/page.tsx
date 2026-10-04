@@ -145,17 +145,19 @@ export default async function SharePage({
   // 2. fallback "Anonymous"
   let authorName = "Anonymous";
   let authorPhoto: string | null = null;
+  let authorInstagram: string | null = null;
 
   if (post.user_id) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("name, photo_url")
+      .select("name, photo_url, instagram")
       .eq("user_id", post.user_id)
       .maybeSingle();
 
     if (profile) {
       if (profile.name?.trim()) authorName = profile.name.trim();
       authorPhoto = profile.photo_url || null;
+      authorInstagram = profile.instagram?.trim() || null;
     }
   }
 
@@ -205,6 +207,7 @@ export default async function SharePage({
           caption={post.content}
           createdAt={post.created_at}
           userId={post.user_id}
+          Authorinstagram={authorInstagram}
           likeCount={initialLikes}
           bookmarkCount={initialBookmarks}
           initialReactions={initialReactions}
