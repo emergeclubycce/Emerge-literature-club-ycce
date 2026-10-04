@@ -19,11 +19,13 @@ import {
   Copy,
   Feather,
   Sparkles,
-  X
+  X,
+  Instagram
 } from "lucide-react";
 import supabase from "@/config/supabase";
 import { fetchPostEngagement } from "@/utils/engagement";
 import { deleteShayariPost, renderFormattedText } from "@/utils/posts";
+import Link from "next/link";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -45,6 +47,7 @@ interface SherProp {
   bookmarkCount?: number;
   currentUserId?: string | null;
   userId?: string | null;
+  Authorinstagram?: string | null;
   onDelete?: (id: number | string) => void;
   status?: "pending" | "approved" | "rejected";
 }
@@ -64,6 +67,7 @@ function SherCard({
   bookmarkCount = 0,
   currentUserId,
   userId,
+  Authorinstagram, 
   onDelete,
   status,
 }: SherProp) {
@@ -418,7 +422,7 @@ function SherCard({
 
   return (
     <article
-      className={`${inter.className} w-full max-w-md mx-auto bg-white border-b border-gray-200/80 sm:border sm:rounded-2xl sm:shadow-xs overflow-hidden transition-all relative select-none sm:select-auto`}
+      className={`${inter.className} w-full max-w-md -mt-5  md:mt-0 mx-auto bg-white border-b border-gray-200/80 sm:border sm:rounded-2xl sm:shadow-xs overflow-hidden transition-all relative select-none sm:select-auto`}
     >
       {/* ========================================================= */}
       {/* 1. INSTAGRAM POST HEADER                                  */}
@@ -476,6 +480,16 @@ function SherCard({
           )}
 
           {/* More Options (...) Button */}
+          {Authorinstagram ? (
+            <Link
+              href={Authorinstagram}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-1.5 text-zinc-600 hover:text-zinc-900 active:scale-95 transition-transform cursor-pointer"
+            >
+              <Instagram size={18} />
+            </Link>
+          ) : null}
           <button
             type="button"
             onClick={() => setShowOptionsModal(true)}

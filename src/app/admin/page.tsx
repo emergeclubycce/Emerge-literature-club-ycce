@@ -427,21 +427,57 @@ export default function AdminDashboardPage() {
     if (!isAdmin) return;
     try {
       setLoadingLogs(true);
+      // Try 'activity_logs' (plural) first, then fallback to 'activity_log' (singular)
       let query = supabase
         .from("activity_logs")
         .select("*")
-        .order("created_at", { ascending: false })
+        .order("created_at", { ascending: false, nullsFirst: false })
         .limit(200);
 
       if (filter !== "all") {
-        query = query.eq("table_name", filter === "posts" ? "posts" : filter === "events" ? "events" : filter === "memories" ? "memories" : "admins");
+        query = query.eq("table_name", filter);
       }
 
-      const { data, error } = await query;
-      if (error) throw error;
-      setActivityLogs((data || []) as ActivityLog[]);
+      let res = await query;
+
+      if (res.error) {
+        // Fallback to singular 'activity_log'
+        let fallbackQuery = supabase
+          .from("activity_log")
+          .select("*")
+          .order("id", { ascending: false })
+          .limit(200);
+
+        if (filter !== "all") {
+          fallbackQuery = fallbackQuery.eq("table_name", filter);
+        }
+
+        res = await fallbackQuery;
+      }
+
+      if (res.error) {
+        logger.error("Failed to load activity logs:", res.error);
+        setActivityLogs([]);
+        return;
+      }
+
+      const formatted: ActivityLog[] = (res.data || []).map((row: any) => ({
+        id: row.id,
+        action: row.action || "INSERT",
+        table_name: row.table_name || "unknown",
+        record_id: row.record_id ?? null,
+        user_id: row.user_id ?? null,
+        user_email: row.user_email ?? null,
+        description: row.description || `${row.action || "Action"} on ${row.table_name || "table"} #${row.record_id ?? ""}`,
+        old_data: row.old_data || null,
+        new_data: row.new_data || null,
+        created_at: row.created_at || row.changed_at || new Date().toISOString(),
+      }));
+
+      setActivityLogs(formatted);
     } catch (err: any) {
       logger.error("Failed to load activity logs:", err);
+      setActivityLogs([]);
     } finally {
       setLoadingLogs(false);
     }

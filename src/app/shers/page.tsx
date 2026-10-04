@@ -35,6 +35,7 @@ interface DisplaySher {
   idx: number;
   likeCount: number;
   bookmarkCount: number;
+  authorInstagram?:string | null;
 }
 
 const PAGE_SIZE = 20;
@@ -379,7 +380,7 @@ function ShersContent() {
             </div>
           ) : (
             <>
-              <div className="columns-1 md:columns-2 lg:columns-3 gap-6 space-y-6">
+              <div className="columns-1 md:columns-2 lg:columns-3 gap-2 space-y-6">
                 {posts.map((val, index) => (
                   <div
                     key={val.id}

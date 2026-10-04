@@ -5,6 +5,10 @@ import type { Metadata } from "next";
 import "./globals.css";
 import NavWrapper from "./components/reuseable/reusable-home/NavWrapper";
 import { Analytics } from "@vercel/analytics/next"
+import { Plus } from "lucide-react";
+import Link from "next/link";
+// import { usePathname } from "next/navigation";
+import AddPostbutton from "./components/reuseable/reusable-home/AddPostbutton";
 
 
 
@@ -24,7 +28,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
 
-
+// const pathname = usePathname();
  
   return (
     <html lang="en">
@@ -34,6 +38,8 @@ export default function RootLayout({
       >
 
         <Analytics/>
+        <AddPostbutton/>
+     
         <NavWrapper>{children}</NavWrapper>
     
       </body>

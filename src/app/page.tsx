@@ -9,7 +9,7 @@ import Maquee from './components/reuseable/reusable-home/maquee'
 import Loader from './components/reuseable/reusable-home/laoder'
 import { LayoutGridDemo } from './components/reuseable/reusable-home/layout-grid'
 import { Inter } from 'next/font/google';
-import { MoveRight } from 'lucide-react'
+import { MoveRight, Plus } from 'lucide-react'
 import Timeline from './components/reuseable/reusable-home/timeline'
 import SherCard from './components/reuseable/reusable-home/sher-card'
 import { AccordionDemo } from './components/reuseable/reusable-home/accordion'
@@ -79,6 +79,9 @@ function Page() {
           sparkCount={8}
           duration={400}
         >
+        
+      
+ 
 
           <main className='no-select min-h-screen  w-full overflow-hidden scrollbar-hide pb-10 '>
 
