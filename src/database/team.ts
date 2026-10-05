@@ -470,7 +470,7 @@ export function getTeamMemberImage(member: TeamMember): string {
      if (name.includes('nittya')) return '/Team-images/Nittya-Tapre.png';
      if (name.includes('sumati')) return '/Team-images/Sumati-Mantri.jpg';
      if (name.includes('ishant')) return '/Team-images/Ishant-Rathod.jpg';
-     if (name.includes('muchkund')) return '/Team-images/Muchkund-Thote.jpg';
+     if (name.includes('muchkund')) return '/Team-images/Muchkund-Thote.png';
      if (name.includes('siya')) return '/Team-images/Siya-Khurana.jpg';
      if (name.includes('swati')) return '/Team-images/Swati.jpg';
      if (name.includes('komal')) return '/Team-images/Komal-Bhelawe.jpg';

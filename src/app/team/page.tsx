@@ -64,10 +64,12 @@ function page() {
           ))}
         </div>
 
-        {/* 2. Vice President */}
-        <h2 className={`${inter.className} text-4xl text-gray-500 text-center font-bold mb-10`}>Vice President</h2>
+     
+
+        {/* 3. Working President */}
+        <h2 className={`${inter.className} text-4xl text-gray-500 text-center font-bold mb-10`}>Working President</h2>
         <div className="min-h-30 w-full flex flex-wrap items-center gap-4 mb-40 justify-center">
-          {vice_president.map((val, inx) => (
+          {working_president.map((val, inx) => (
             <Profilecard
               key={inx}
               name={val.name}
@@ -80,10 +82,10 @@ function page() {
           ))}
         </div>
 
-        {/* 3. Working President */}
-        <h2 className={`${inter.className} text-4xl text-gray-500 text-center font-bold mb-10`}>Working President</h2>
+           {/* 2. Vice President */}
+        <h2 className={`${inter.className} text-4xl text-gray-500 text-center font-bold mb-10`}>Vice President</h2>
         <div className="min-h-30 w-full flex flex-wrap items-center gap-4 mb-40 justify-center">
-          {working_president.map((val, inx) => (
+          {vice_president.map((val, inx) => (
             <Profilecard
               key={inx}
               name={val.name}
