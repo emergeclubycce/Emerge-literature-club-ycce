@@ -154,7 +154,7 @@ const MEMORIES_GALLERY: MemoryPhoto[] = [
   },
   {
     id: "mem-latent-1",
-    image_url: "/memories/event-6.JPG",
+    image_url: "/memories/latent.png",
     caption: "Latent Showcase — Unfiltered, raw talent spotlight giving first-time performers their defining moment.",
     category: "Latent",
     date: "Creative Showcase",
@@ -426,12 +426,9 @@ export default function MemoriesPage() {
                     className={`${newsreader.className} text-sm sm:text-base leading-relaxed text-[#292524] text-justify space-y-3 pt-2`}
                   >
                     <p className="first-letter:float-left first-letter:text-6xl first-letter:font-black first-letter:font-serif first-letter:mr-3 first-letter:leading-none first-letter:text-[#1c1917]">
-                      Founded on June 21, 2020, amidst global quarantine, the Emerge Literature Club was ignited by a
-                      singular conviction: that inside every engineering student at YCCE lives an artist yearning for a
-                      stage. In an academic environment dominated by complex equations, circuit schematics, and rigorous code,
-                      spoken literature provides the indispensable heartbeat that keeps our humanity, passion, and empathy vibrant.
+                     Founded on June 21, 2020, the Emerge Literature Club was built on a simple truth: inside every YCCE engineer lives an artist seeking a stage. Amidst complex equations and code, spoken literature provides the heartbeat that keeps our humanity and empathy vibrant. What began as a virtual sanctuary quickly grew into the college's premier creative collective, hosting 25+ signature events—from open-mics to literary baithaks—bringing over 500 original verses to life and uniting 100+ student performers over five years. Formally expanding from poetry into a complete literature club on September 3, 2025, Emerge embraces multilingual poetry in Hindi, Urdu, Marathi, and English, alongside storytelling and debate. Today, it stands as an inclusive space at YCCE where introverts conquer stage fright, emotions find resonance, and scholars discover their authentic voice.
                     </p>
-                    <p>
+                    {/* <p>
                       What began as an intimate virtual sanctuary for heartfelt verse rapidly blossomed into the college&apos;s
                       premier creative collective. Over five transformative years, Emerge has orchestrated 25+ signature gatherings—from
                       spirited open-mic evenings and competitive slams to soulful literary baithaks—bringing over 500 original
@@ -449,13 +446,13 @@ export default function MemoriesPage() {
                       unspoken emotions discover profound resonance, and lifelong artistic camaraderie is forged. Here, words transcend
                       the notebook page to ignite listeners&apos; hearts, inspiring every young scholar to discover their authentic voice and
                       truly emerge.
-                    </p>
+                    </p> */}
                   </div>
                 </div>
 
                 {/* Editorial Byline Sign-off */}
                 <div className="mt-5 pt-3 border-t border-[#1c1917] flex items-center justify-between text-xs font-bold uppercase tracking-wider text-[#57534e]">
-                  <span>JAGDISH KACHHAWAH, PRESIDENT</span>
+                  <span>PRESIDENT</span>
                   <span className="text-[#78350f]">❦ THE LIVING CADENCE ❦</span>
                 </div>
               </div>
@@ -771,7 +768,7 @@ export default function MemoriesPage() {
                   >
                     <div className="relative w-full aspect-[4/5] overflow-hidden bg-stone-300">
                       <Image
-                        src="/memories/event3.png"
+                        src="/memories/grandstand3.png"
                         alt="Grandstand 5.0 Stage"
                         fill
                         unoptimized
@@ -826,7 +823,7 @@ export default function MemoriesPage() {
                   >
                     <div className="relative w-full aspect-square overflow-hidden bg-stone-300">
                       <Image
-                        src="/memories/event4.png"
+                        src="/memories/grandstand1.png"
                         alt="Grandstand Finalist"
                         fill
                         unoptimized
@@ -844,7 +841,7 @@ export default function MemoriesPage() {
                   >
                     <div className="relative w-full aspect-square overflow-hidden bg-stone-300">
                       <Image
-                        src="/memories/event5.JPG"
+                        src="/memories/grandstand2.png"
                         alt="Audience & Performers"
                         fill
                         unoptimized
@@ -900,7 +897,7 @@ export default function MemoriesPage() {
                   >
                     <div className="relative w-full aspect-16/10 overflow-hidden bg-stone-300">
                       <Image
-                        src="/memories/event-6.JPG"
+                        src="/memories/latent.png"
                         alt="Latent Showcase Performance"
                         fill
                         unoptimized
