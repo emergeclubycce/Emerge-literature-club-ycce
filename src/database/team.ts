@@ -203,6 +203,16 @@ export const semicore: TeamMember[] = [
           "linkedin": "https://www.linkedin.com/in/kshitij-kamdi-791879382?utm_source=share_via&utm_content=profile&utm_medium=member_android"
      },
      {
+          "email": "sahilbele450@gmail.com",
+          "name": "Sahil Bele",
+          "department": "",
+          "role": "Co-head",
+          "domain": "Design",
+          "drive_link": "https://docs.google.com/images/d/1Dv0Z_jAUP7euiL22AE-vQBYbigiqIFTyO8R14AqIVwU/edit?usp=drive_link",
+          "instagram": "https://www.instagram.com/sahiil.bele?stkn=MW14OHg4a2FtZ25sMg==",
+          "linkedin": "-"
+     },
+     {
           "email": "omkardhenge77@gmail.com",
           "name": "Omkar Dhenge",
           "department": "Mechanical",
@@ -320,16 +330,7 @@ export const semicore: TeamMember[] = [
           "instagram": "https://www.instagram.com/janhavipakale?stkn=MWJ6MTlpc2lpM2o3eg==",
           "linkedin": "https://www.linkedin.com/in/janhavi-pakale-823378329?utm_source=share_via&utm_content=profile&utm_medium=member_android"
      },
-     {
-          "email": "sahilbele450@gmail.com",
-          "name": "Sahil Bele",
-          "department": "",
-          "role": "Co-head",
-          "domain": "Design",
-          "drive_link": "https://docs.google.com/images/d/1Dv0Z_jAUP7euiL22AE-vQBYbigiqIFTyO8R14AqIVwU/edit?usp=drive_link",
-          "instagram": "https://www.instagram.com/sahiil.bele?stkn=MW14OHg4a2FtZ25sMg==",
-          "linkedin": "-"
-     }
+     
 ];
 
 export const coordinator: TeamMember[] = [
