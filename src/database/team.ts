@@ -343,6 +343,15 @@ export const coordinator: TeamMember[] = [
           "drive_link": "https://drive.google.com/open?id=1hH7MbW8wcOM3x5trdsvg3LTX1mp6V227",
           "instagram": "https://www.instagram.com/prana_y92007?stkn=MXUwd2ZncmY0NHhoYQ==",
           "linkedin": "https://www.linkedin.com/in/pranay-gabhane-553080359?utm_source=share_via&utm_content=profile&utm_medium=member_android"
+     }, {
+          "email": "deerghawandhare@gmail.com",
+          "name": "Deergha Wandhare ",
+          "department": "IT",
+          "role": "Coordinator",
+          "domain": "Poetry",
+          "drive_link": "https://drive.google.com/open?id=1hH7MbW8wcOM3x5trdsvg3LTX1mp6V227",
+          "instagram": "https://www.instagram.com/deergha_wandhare?stkn=MTZkcWxyd3pla3p3dw==",
+          "linkedin": "https://www.linkedin.com/in/deergha-wandhare-89a1a5384?utm_source=share_via&utm_content=profile&utm_medium=member_androidhttps://www.linkedin.com/in/deergha-wandhare-89a1a5384?utm_source=share_via&utm_content=profile&utm_medium=member_android"
      }
 ];
 
