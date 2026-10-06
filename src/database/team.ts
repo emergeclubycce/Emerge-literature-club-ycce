@@ -269,6 +269,15 @@ export const semicore: TeamMember[] = [
           "drive_link": "https://drive.google.com/open?id=1joArnOICcf4tdvGSuqIWtfAqCPBXoIpx",
           "instagram": "https://www.instagram.com/abhiramjoshii?stkn=MTFzNTBka28xYWl5NA==",
           "linkedin": "https://www.linkedin.com/in/abhiram-joshi-970843337?utm_source=share_via&utm_content=profile&utm_medium=member_android"
+     },{
+          "email": "251070998@ycce.in",
+          "name": "Rupesh Kadam ",
+          "department": "IT",
+          "role": "Co-head",
+          "domain": "Photography",
+          "drive_link": "https://drive.google.com/open?id=1cxQWKsJNsfXw9cQP1XmvLQH4Txvsuf9A",
+          "instagram": "https://www.instagram.com/rupesh_kadam__?stkn=MXBldWhuOTAzYTRubQ==https://www.instagram.com/rupesh_kadam__?stkn=MXBldWhuOTAzYTRubQ==",
+          "linkedin": "https://www.linkedin.com/in/rupesh-kadam-6a6b3338a?utm_source=share_via&utm_content=profile&utm_medium=member_android"
      },
      {
           "email": "tanmaykhante365@gmail.com",
@@ -517,7 +526,8 @@ export function getTeamMemberImage(member: TeamMember): string {
      if (name.includes('astha') || name.includes('aastha')) return '/Team-images/Aastha-Sharma.jpg';
      if (name.includes('shrawani')) return '/Team-images/Shrawani-raut.jpg';
      if (name.includes('kayarkar') || name.includes('akhilesh')) return '/Team-images/KAYARKAR-AKHILESH-AVINASH.jpeg';
-      if (name.includes('deergha')) return '/Team-images/Deergha-Wandhare.jpg';
+     if (name.includes('deergha')) return '/Team-images/Deergha-Wandhare.jpg';
+     if (name.includes('rupesh')) return '/Team-images/KADAM-RUPESH.png';
      return '/image/logo-2.png';
 }
 
