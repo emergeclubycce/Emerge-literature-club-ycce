@@ -517,7 +517,7 @@ export function getTeamMemberImage(member: TeamMember): string {
      if (name.includes('astha') || name.includes('aastha')) return '/Team-images/Aastha-Sharma.jpg';
      if (name.includes('shrawani')) return '/Team-images/Shrawani-raut.jpg';
      if (name.includes('kayarkar') || name.includes('akhilesh')) return '/Team-images/KAYARKAR-AKHILESH-AVINASH.jpeg';
-
+      if (name.includes('deergha')) return '/Team-images/Deergha-Wandhare.jpg';
      return '/image/logo-2.png';
 }
 
