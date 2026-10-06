@@ -449,7 +449,7 @@ export const executive: TeamMember[] = [
           "email": "251070998@ycce.in",
           "name": "Rupesh Kadam ",
           "department": "IT",
-          "role": "Co-head",
+          "role": "Executive",
           "domain": "Photography",
           "drive_link": "https://drive.google.com/open?id=1cxQWKsJNsfXw9cQP1XmvLQH4Txvsuf9A",
           "instagram": "https://www.instagram.com/rupesh_kadam__?stkn=MXBldWhuOTAzYTRubQ==https://www.instagram.com/rupesh_kadam__?stkn=MXBldWhuOTAzYTRubQ==",
