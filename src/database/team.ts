@@ -269,15 +269,6 @@ export const semicore: TeamMember[] = [
           "drive_link": "https://drive.google.com/open?id=1joArnOICcf4tdvGSuqIWtfAqCPBXoIpx",
           "instagram": "https://www.instagram.com/abhiramjoshii?stkn=MTFzNTBka28xYWl5NA==",
           "linkedin": "https://www.linkedin.com/in/abhiram-joshi-970843337?utm_source=share_via&utm_content=profile&utm_medium=member_android"
-     },{
-          "email": "251070998@ycce.in",
-          "name": "Rupesh Kadam ",
-          "department": "IT",
-          "role": "Co-head",
-          "domain": "Photography",
-          "drive_link": "https://drive.google.com/open?id=1cxQWKsJNsfXw9cQP1XmvLQH4Txvsuf9A",
-          "instagram": "https://www.instagram.com/rupesh_kadam__?stkn=MXBldWhuOTAzYTRubQ==https://www.instagram.com/rupesh_kadam__?stkn=MXBldWhuOTAzYTRubQ==",
-          "linkedin": "https://www.linkedin.com/in/rupesh-kadam-6a6b3338a?utm_source=share_via&utm_content=profile&utm_medium=member_android"
      },
      {
           "email": "tanmaykhante365@gmail.com",
@@ -454,6 +445,15 @@ export const executive: TeamMember[] = [
           "drive_link": " https://drive.google.com/file/d/1W9run8675CSiVpoJ614mSLATJWh1hEMa/view?usp=drive_link",
           "instagram": "https://www.instagram.com/shrrwni.14_?stkn=MWpyYmVpNDFlYmY1OQ==",
           "linkedin": "https://www.linkedin.com/in/shrawani-raut-20b973421?utm_source=share_via&utm_content=profile&utm_medium=member_android"
+     },{
+          "email": "251070998@ycce.in",
+          "name": "Rupesh Kadam ",
+          "department": "IT",
+          "role": "Co-head",
+          "domain": "Photography",
+          "drive_link": "https://drive.google.com/open?id=1cxQWKsJNsfXw9cQP1XmvLQH4Txvsuf9A",
+          "instagram": "https://www.instagram.com/rupesh_kadam__?stkn=MXBldWhuOTAzYTRubQ==https://www.instagram.com/rupesh_kadam__?stkn=MXBldWhuOTAzYTRubQ==",
+          "linkedin": "https://www.linkedin.com/in/rupesh-kadam-6a6b3338a?utm_source=share_via&utm_content=profile&utm_medium=member_android"
      },
      {
           "email": "251070241@ycce.in",
