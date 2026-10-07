@@ -131,7 +131,7 @@ export default function AboutUsPage() {
               Club Leadership Note
             </span>
             <h2 className={`${playfair.className} text-3xl sm:text-4xl font-bold text-zinc-900 mt-2`}>
-              President&apos;s Message
+              Founder&apos;s Message
             </h2>
             <div className="w-16 h-1 bg-sky-500 rounded-full mx-auto mt-3" />
           </div>
